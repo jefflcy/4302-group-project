@@ -1,8 +1,7 @@
-# React + Vite
+# React client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This react project is unopinionated with only `web3.js` as an added dependency, so nothing stands in your way.
 
-Currently, two official plugins are available:
+## Getting started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Run `npm start` to start the dev server, and `npm build` to create a production build.
