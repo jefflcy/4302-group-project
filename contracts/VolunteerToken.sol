@@ -16,6 +16,7 @@ contract VolunteerToken is ERC1155, Ownable {
     mapping(uint256 => uint256) projectsHistory;
 
     // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    // owner: the deployer of the contract (input when calling from Volunteer.sol)
     constructor(address owner, string memory _uri) ERC1155(_uri) Ownable(owner) {
         baseURI = _uri;
     } 
@@ -36,5 +37,17 @@ contract VolunteerToken is ERC1155, Ownable {
     function contractURI() public view returns (string memory) {
         return string(abi.encodePacked(baseURI, "collections.json"));
     }
+
+    // making it soulbound, ie. only owner can transfer/burn tokens
+    function _beforeTokenTransfer(
+        address operator, 
+        address from, 
+        address to, 
+        uint256[] memory ids, 
+        uint256[] memory amounts,
+        bytes memory data
+        ) internal override {
+            super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+            require(owner() == from || to == address(0), "Only charity (owner) can transfer/burn tokens");
 
 }
