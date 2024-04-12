@@ -1,3 +1,5 @@
+// contracts/Volunteer.sol
+// contracts/VolunteerToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -72,7 +74,11 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
                 id: projectId,
                 maxHours: maxHours,
                 maxVolunteers: maxVolunteers,
-                currentState: projectState.created
+                participatingVolunteers: new address[],
+                volunteerCount: 0,
+                currentState: projectState.created,
+                startDateTime: 0,
+                endDateTime: 0
             })
         );
 
@@ -89,7 +95,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         );
 
         require(
-            volunteerCount + 1 < project.maxVolunteers,
+            project.volunteerCount + 1 < project.maxVolunteers,
             "Project has already hit the volunteer limit"
         );
         require(
@@ -134,7 +140,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         project.endDateTime = block.timestamp;
         uint256 hoursElapsed = (project.endDateTime - project.startDateTime) /
             3600;
-        uint256 hoursToDistribute = Math.min(hoursElapsed, maxHours);
+        uint256 hoursToDistribute = Math.min(hoursElapsed, project.maxHours);
 
         project.currentState = projectState.ended;
 
@@ -148,7 +154,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
 
             VolunteerInfo storage volunteer = volunteers[volunteerAdd];
             volunteer.totalHours += hoursToDistribute;
-            volunteer.history[projectId] = hoursToDistribute;
+            volunteer.projectHistory[projectId] = hoursToDistribute;
         }
 
         emit ProjectUnlocked(projectId, project.endDateTime);
@@ -157,7 +163,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     // Helper Functions
 
     function isVolunteerInProject(
-        VolunteerProject project,
+        VolunteerProject calldata project,
         address volunteer
     ) public view returns (bool) {
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
@@ -168,8 +174,8 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         return false;
     }
 
-    function getTotalHours(address volunteerAdd) public view returns (uin256) {
-        VolunteerInfo volunteer = volunteers[volunteerAdd];
+    function getTotalHours(address volunteerAdd) public view returns (uint256) {
+        VolunteerInfo storage volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.totalHours;
 
         emit VolunteerTotalHours(volunteerHours);
@@ -179,8 +185,8 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     function getProjectHours(
         address volunteerAdd,
         uint256 projectId
-    ) public view returns (uin256) {
-        VolunteerInfo volunteer = volunteers[volunteerAdd];
+    ) public view returns (uint256) {
+        VolunteerInfo storage volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.projectHistory[projectId];
 
         emit VolunteerProjectHours(volunteerHours);
