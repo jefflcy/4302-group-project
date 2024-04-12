@@ -39,7 +39,7 @@ contract VolunteerToken is ERC1155, Ownable {
 
         for (uint256 i = 0; i < participants.length; i++) {
             address participant = participants[i];
-            if (!participant) break; // break if address(0) as address[] may not be filled up completely
+            if (participant == address(0)) break; // break if address(0) as address[] may not be filled up completely
             safeTransferFrom(tx.origin, participant, projId, 1, "");
         } 
 
