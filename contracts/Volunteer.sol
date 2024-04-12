@@ -112,8 +112,11 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         );
 
         project.currentState = projectState.ongoing;
-        
-        volunteerTokenContract.mintAfterLockProject(projectId, project.participatingVolunteers.length)
+
+        volunteerTokenContract.mintAfterLockProject(
+            projectId,
+            project.participatingVolunteers.length
+        );
 
         project.startDateTime = block.timestamp;
 
@@ -135,24 +138,26 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
 
         project.currentState = projectState.ended;
 
-        volunteerTokenContract.transferAfterUnlock(projectId, project.participatingVolunteers);
+        volunteerTokenContract.transferAfterUnlock(
+            projectId,
+            project.participatingVolunteers
+        );
 
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             address volunteerAdd = project.participatingVolunteers[i];
 
             VolunteerInfo storage volunteer = volunteers[volunteerAdd];
             volunteer.totalHours += hoursToDistribute;
-            voluntter.history[projectId] = hoursToDistribute;
+            volunteer.history[projectId] = hoursToDistribute;
         }
 
         emit ProjectUnlocked(projectId, project.endDateTime);
     }
 
-
     // Helper Functions
 
     function isVolunteerInProject(
-        VolunteerProkject project,
+        VolunteerProject project,
         address volunteer
     ) public view returns (bool) {
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
@@ -163,7 +168,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         return false;
     }
 
-    function getTotalHours(address volunteerAdd) public view returns(uin256) {
+    function getTotalHours(address volunteerAdd) public view returns (uin256) {
         VolunteerInfo volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.totalHours;
 
@@ -171,7 +176,10 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         return volunteerHours;
     }
 
-    function getProjectHours(address volunteerAdd, uint256 projectId) public view returns(uin256) {
+    function getProjectHours(
+        address volunteerAdd,
+        uint256 projectId
+    ) public view returns (uin256) {
         VolunteerInfo volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.projectHistory[projectId];
 
