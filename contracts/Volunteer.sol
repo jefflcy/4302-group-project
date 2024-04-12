@@ -6,14 +6,12 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "./VolunteerToken.sol";
+
 contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     bytes32 public constant CHARITY_ROLE = keccak256("CHARITY_ROLE");
 
-    // Tokens IDs
-    uint256 private constant REWARD_TOKEN_ID = 1; // For reward tokens, fungible
-
-    // Starting index for unique badge NFTs, non-fungible
-    uint256 private currentBadgeId = 1000;
+    VolunteerToken volunteerTokenContract;
 
     enum projectState {
         created,
@@ -40,17 +38,12 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     VolunteerProject[] public projects;
     mapping(address => VolunteerInfo) volunteers;
 
-    event ProjectCreated(uint256 indexed projectId, string details);
-    event VolunteerJoined(uint256 indexed projectId, address volunteer);
+    event ProjectCreated(uint256 indexed projectId);
     event VolunteerCheckedIn(uint256 indexed projectId, address volunteer);
-    event VolunteerCheckedOut(
-        uint256 indexed projectId,
-        address volunteer,
-        uint256 volunteerHours
-    );
-    event TokenDistributed(address volunteer, uint256 amount);
-    event BadgeMinted(address volunteer, uint256 badgeId);
-    ///
+    event ProjectLocked(uint256 indexed projectId, uint256 startDateTime);
+    event ProjectUnlocked(uint256 indexed projectId, uint256 endDateTime);
+    event VolunteerTotalHours(uint256 volunteerHours);
+    event VolunteerProjectHours(uint256 volunteerHours);
 
     constructor() ERC1155("https://yourmetadata.api/item/{id}.json") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -110,18 +103,6 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         emit VolunteerCheckedIn(projectId, msg.sender);
     }
 
-    function isVolunteerInProject(
-        VolunteerProkject project,
-        address volunteer
-    ) public view returns (bool) {
-        for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
-            if (project.participatingVolunteers[i] == volunteer) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     function lockProject(uint256 projectId) public {
         require(projectId < projects.length, "Invalid project ID");
         VolunteerProject storage project = projects[projectId];
@@ -131,10 +112,12 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         );
 
         project.currentState = projectState.ongoing;
-
-        // CALL VOLUNTEERTOKEN.SOL MINT
+        
+        volunteerTokenContract.mintAfterLockProject(projectId, project.participatingVolunteers.length)
 
         project.startDateTime = block.timestamp;
+
+        emit ProjectLocked(projectId, project.startDateTime);
     }
 
     function unlockProject(uint256 projectId) public {
@@ -152,33 +135,47 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
 
         project.currentState = projectState.ended;
 
+        volunteerTokenContract.transferAfterUnlock(projectId, project.participatingVolunteers);
+
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             address volunteerAdd = project.participatingVolunteers[i];
-
-            // CALL VOLUNTEERTOKEN.SOL TRANSFER
 
             VolunteerInfo storage volunteer = volunteers[volunteerAdd];
             volunteer.totalHours += hoursToDistribute;
             voluntter.history[projectId] = hoursToDistribute;
         }
+
+        emit ProjectUnlocked(projectId, project.endDateTime);
     }
 
-    // Similar to previous versions but adapted for ERC1155 token interactions
 
-    // New function to mint badges as NFTs
-    function mintBadge(address volunteer) internal {
-        _mint(volunteer, currentBadgeId++, 1, "");
-        emit BadgeMinted(volunteer, currentBadgeId - 1);
+    // Helper Functions
+
+    function isVolunteerInProject(
+        VolunteerProkject project,
+        address volunteer
+    ) public view returns (bool) {
+        for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
+            if (project.participatingVolunteers[i] == volunteer) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    // Function to distribute reward tokens
-    function distributeRewardTokens(
-        address volunteer,
-        uint256 amount
-    ) internal {
-        _mint(volunteer, REWARD_TOKEN_ID, amount, "");
-        emit TokenDistributed(volunteer, amount);
+    function getTotalHours(address volunteerAdd) public view returns(uin256) {
+        VolunteerInfo volunteer = volunteers[volunteerAdd];
+        uint256 volunteerHours = volunteer.totalHours;
+
+        emit VolunteerTotalHours(volunteerHours);
+        return volunteerHours;
     }
 
-    // Additional utility and management functions as needed...
+    function getProjectHours(address volunteerAdd, uint256 projectId) public view returns(uin256) {
+        VolunteerInfo volunteer = volunteers[volunteerAdd];
+        uint256 volunteerHours = volunteer.projectHistory[projectId];
+
+        emit VolunteerProjectHours(volunteerHours);
+        return volunteerHours;
+    }
 }
