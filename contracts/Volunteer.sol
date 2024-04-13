@@ -1,16 +1,15 @@
 // contracts/Volunteer.sol
 // contracts/VolunteerToken.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./VolunteerToken.sol";
 
-contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
+contract Volunteer is AccessControl, ReentrancyGuard {
     bytes32 public constant CHARITY_ROLE = keccak256("CHARITY_ROLE");
 
     VolunteerToken volunteerTokenContract;
@@ -44,16 +43,16 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     event VolunteerCheckedIn(uint256 indexed projectId, address volunteer);
     event ProjectLocked(uint256 indexed projectId, uint256 startDateTime);
     event ProjectUnlocked(uint256 indexed projectId, uint256 endDateTime);
-    event VolunteerTotalHours(uint256 volunteerHours);
-    event VolunteerProjectHours(uint256 volunteerHours);
+    // event VolunteerTotalHours(uint256 volunteerHours);
+    // event VolunteerProjectHours(uint256 volunteerHours);
 
-    constructor() ERC1155("https://yourmetadata.api/item/{id}.json") {
+    constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC1155, AccessControl) returns (bool) {
+    ) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
@@ -74,7 +73,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
                 id: projectId,
                 maxHours: maxHours,
                 maxVolunteers: maxVolunteers,
-                participatingVolunteers: new address[],
+                participatingVolunteers: new address[](1000),
                 volunteerCount: 0,
                 currentState: projectState.created,
                 startDateTime: 0,
@@ -99,7 +98,7 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
             "Project has already hit the volunteer limit"
         );
         require(
-            !isVolunteerInProject(project, msg.sender),
+            !isVolunteerInProject(projectId, msg.sender),
             "Volunteer has already checked in"
         );
 
@@ -163,9 +162,10 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
     // Helper Functions
 
     function isVolunteerInProject(
-        VolunteerProject calldata project,
+        uint256 projectId,
         address volunteer
     ) public view returns (bool) {
+        VolunteerProject memory project = projects[projectId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {
                 return true;
@@ -178,7 +178,6 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         VolunteerInfo storage volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.totalHours;
 
-        emit VolunteerTotalHours(volunteerHours);
         return volunteerHours;
     }
 
@@ -189,7 +188,6 @@ contract Volunteer is ERC1155, AccessControl, ReentrancyGuard {
         VolunteerInfo storage volunteer = volunteers[volunteerAdd];
         uint256 volunteerHours = volunteer.projectHistory[projectId];
 
-        emit VolunteerProjectHours(volunteerHours);
         return volunteerHours;
     }
 }
