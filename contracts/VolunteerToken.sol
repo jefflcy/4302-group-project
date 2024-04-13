@@ -22,9 +22,8 @@ contract VolunteerToken is ERC1155, Ownable {
         _baseURI = _uri;
     }
 
-    // mint nfts to the Volunteer.sol CA
-    // called by Volunteer.sol's lockProject
-    // make sure Volunteer.sol is ERC1155Holder
+    // mint nfts to the owner (charity WA)
+    // called by owner via Volunteer.sol's lockProject
     function mintAfterLockProject(
         uint256 projId,
         uint256 numOfParticipants
@@ -33,8 +32,8 @@ contract VolunteerToken is ERC1155, Ownable {
         _mint(tx.origin, projId, numOfParticipants, "");
     }
 
-    // transfer NFTs to participants
-    // called by Volunteer.sol's unlockProject
+    // transfer NFTs to participants from owner
+    // called by owner via Volunteer.sol's unlockProject
     function transferAfterUnlock(
         uint256 projId,
         address[] calldata participants
