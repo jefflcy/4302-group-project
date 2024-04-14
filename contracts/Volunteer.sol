@@ -1,38 +1,35 @@
 // contracts/Volunteer.sol
-// contracts/VolunteerToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./VolunteerToken.sol";
 
-contract Volunteer is AccessControl, ReentrancyGuard {
-    bytes32 public constant CHARITY_ROLE = keccak256("CHARITY_ROLE");
+contract Volunteer is Ownable {
 
     VolunteerToken volunteerTokenContract;
 
-    enum projectState {
-        created,
-        ongoing,
-        ended
-    }
-
     struct VolunteerProject {
         uint256 id;
-        uint256 maxHours;
         uint256 maxVolunteers;
         address[] participatingVolunteers;
         uint8 volunteerCount;
-        projectState currentState;
-        uint256 startDateTime;
-        uint256 endDateTime;
+        uint256 startDateTime; // new impl
+        uint256 endDateTime; // new impl
     }
+
+    /* HOW TO USE DATE TIME AS UINT IN SOLIDITY */
+
+    // uint startDate = 1638352800; // 2012-12-01 10:00:00
+    // uint endDate = 1638871200; // 2012-12-07 10:00:00
+    // uint daysDiff = (endDate - startDate) / 60 / 60 / 24; // 6 days
 
     struct VolunteerInfo {
         uint256 totalHours;
+        uint256[] startTimes; // new
+        uint256[] endTimes; // new
         uint256[] projectHistory;
     }
 
@@ -41,60 +38,42 @@ contract Volunteer is AccessControl, ReentrancyGuard {
 
     event ProjectCreated(uint256 indexed projectId);
     event VolunteerCheckedIn(uint256 indexed projectId, address volunteer);
-    event ProjectLocked(uint256 indexed projectId, uint256 startDateTime);
-    event ProjectUnlocked(uint256 indexed projectId, uint256 endDateTime);
-    // event VolunteerTotalHours(uint256 volunteerHours);
-    // event VolunteerProjectHours(uint256 volunteerHours);
+    /* ADD EVENT FOR CHECKOUT HERE */
 
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
+    /* ADD ACCESS MODIFIER FOR VALID PROJ ID*/
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(AccessControl) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    constructor(string memory _uri) Ownable(msg.sender) {
+        volunteerTokenContract = new VolunteerToken(_uri);
     }
 
     function createProject(
-        uint256 maxVolunteers,
-        uint256 maxHours
-    ) public onlyRole(CHARITY_ROLE) {
-        require(
-            maxVolunteers > 0,
-            "Maximum number of volunteers must be at least one"
-        );
-        require(maxHours > 0, "Maximum number of hours must be at least one");
+        uint startDateTime,
+        uint endDateTime
+    ) public onlyOwner {
+
+        /* ADD NEW REQUIRE STATEMENTS HERE */
 
         uint256 projectId = projects.length;
 
-        projects.push(
-            VolunteerProject({
-                id: projectId,
-                maxHours: maxHours,
-                maxVolunteers: maxVolunteers,
-                participatingVolunteers: new address[](1000),
-                volunteerCount: 0,
-                currentState: projectState.created,
-                startDateTime: 0,
-                endDateTime: 0
-            })
-        );
+        // Init empty volunteers array
+        address[] memory participatingVolunteers;
+
+        // projects.push(
+        //     VolunteerProject({
+        //     })
+        // );
 
         emit ProjectCreated(projectId);
     }
 
     function checkIn(uint256 projectId) public {
-        require(projectId < projects.length, "Invalid project ID");
-        VolunteerProject storage project = projects[projectId];
+        
+        VolunteerProject storage project = projects[projectId]; 
 
+        require(projectId < projects.length, "Invalid project ID"); // TO BE PULLED OUT TO MODIFIER
         require(
-            project.currentState == projectState.created,
-            "Project has stopped taking in volunteers"
-        );
-
-        require(
-            project.volunteerCount + 1 < project.maxVolunteers,
+            project.volunteerCount + 1 <= project.maxVolunteers,
             "Project has already hit the volunteer limit"
         );
         require(
@@ -108,70 +87,81 @@ contract Volunteer is AccessControl, ReentrancyGuard {
         emit VolunteerCheckedIn(projectId, msg.sender);
     }
 
-    function lockProject(uint256 projectId) public {
-        require(projectId < projects.length, "Invalid project ID");
-        VolunteerProject storage project = projects[projectId];
-        require(
-            project.currentState == projectState.created,
-            "Project has been locked previously"
-        );
 
-        project.currentState = projectState.ongoing;
+    /* TO BE REMOVED, LEAVING HERE FOR REFERENCE */
 
-        volunteerTokenContract.mintAfterLockProject(
-            projectId,
-            project.participatingVolunteers.length
-        );
+    // function lockProject(uint256 projectId) public {
+    //     require(projectId < projects.length, "Invalid project ID");
+    //     VolunteerProject storage project = projects[projectId];
+    //     require(
+    //         project.currentState == projectState.created,
+    //         "Project has been locked previously"
+    //     );
 
-        project.startDateTime = block.timestamp;
+    //     project.currentState = projectState.ongoing;
 
-        emit ProjectLocked(projectId, project.startDateTime);
-    }
+    //     volunteerTokenContract.mintAfterLockProject(
+    //         projectId,
+    //         project.participatingVolunteers.length
+    //     );
 
-    function unlockProject(uint256 projectId) public {
-        require(projectId < projects.length, "Invalid project ID");
-        VolunteerProject storage project = projects[projectId];
-        require(
-            project.currentState == projectState.ongoing,
-            "Project is not locked"
-        );
+    //     project.startDateTime = block.timestamp;
 
-        project.endDateTime = block.timestamp;
-        uint256 hoursElapsed = (project.endDateTime - project.startDateTime) /
-            3600;
-        uint256 hoursToDistribute = Math.min(hoursElapsed, project.maxHours);
+    //     emit ProjectLocked(projectId, project.startDateTime);
+    // }
 
-        project.currentState = projectState.ended;
+    /* TO BE CHANGED TO CHECKOUT, LEAVING HERE FOR REFERENCE */
+    // function unlockProject(uint256 projectId) public {
+    //     require(projectId < projects.length, "Invalid project ID");
+    //     VolunteerProject storage project = projects[projectId];
+    //     require(
+    //         project.currentState == projectState.ongoing,
+    //         "Project is not locked"
+    //     );
 
-        volunteerTokenContract.transferAfterUnlock(
-            projectId,
-            project.participatingVolunteers
-        );
+    //     project.endDateTime = block.timestamp;
+    //     uint256 hoursElapsed = (project.endDateTime - project.startDateTime) /
+    //         3600;
+    //     uint256 hoursToDistribute = Math.min(hoursElapsed, project.maxHours);
 
-        for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
-            address volunteerAdd = project.participatingVolunteers[i];
+    //     project.currentState = projectState.ended;
 
-            VolunteerInfo storage volunteer = volunteers[volunteerAdd];
-            volunteer.totalHours += hoursToDistribute;
-            volunteer.projectHistory[projectId] = hoursToDistribute;
-        }
+    //     volunteerTokenContract.transferAfterUnlock(
+    //         projectId,
+    //         project.participatingVolunteers
+    //     );
 
-        emit ProjectUnlocked(projectId, project.endDateTime);
-    }
+    //     for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
+    //         address volunteerAdd = project.participatingVolunteers[i];
 
-    // Helper Functions
+    //         VolunteerInfo storage volunteer = volunteers[volunteerAdd];
+    //         volunteer.totalHours += hoursToDistribute;
+    //         volunteer.projectHistory[projectId] = hoursToDistribute;
+    //     }
 
+    //     emit ProjectUnlocked(projectId, project.endDateTime);
+    // }
+
+    
+    
+    // HELPER FUNCTIONS
     function isVolunteerInProject(
-        uint256 projectId,
+        uint256 projId,
         address volunteer
     ) public view returns (bool) {
-        VolunteerProject memory project = projects[projectId];
+        VolunteerProject memory project = projects[projId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {
                 return true;
             }
         }
         return false;
+    }
+
+
+    // GETTER FUNCTIONS 
+    function getNextProjId() public view returns (uint256) {
+        return projects.length;
     }
 
     function getTotalHours(address volunteerAdd) public view returns (uint256) {
