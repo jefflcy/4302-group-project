@@ -6,50 +6,21 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-contract VolunteerToken is ERC1155 {
+contract VolunteerToken is ERC1155, Ownable {
 
     // baseURI: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
     string private _baseURI;
 
-    // maps `projId` to `mintedSuply`
-    mapping(uint256 => uint256) projectsHistory;
-
-    // Event emitted after transferring to all participants
-    event TransferComplete(uint256 projId, address[] participants);
-
-    /* ADD JAVIAN ACCESS MODIFIER HERE */
-
     // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
-    // owner: the deployer of the contract (input when calling from Volunteer.sol)
-    constructor(string memory _uri) ERC1155(_uri) {
+    // owner is the Volunteer.sol CA
+    constructor(string memory _uri) ERC1155(_uri) Ownable(msg.sender) {
         _baseURI = _uri;
     } 
 
-
-    /* THIS FN IS TO BE EDITED: MINT ONLY WHEN CHECKOUT IS CALLED */
-
-    // mint nfts to the owner (charity WA)
-    // called by owner via Volunteer.sol's lockProject
-    function mintAfterLockProject(uint256 projId, uint256 numOfParticipants) public {
-        projectsHistory[projId] = numOfParticipants; // store mintedSupply for each project
-        _mint(tx.origin, projId, numOfParticipants, "");
-    }
-
-
-    /* THIS FN IS TO BE REMOVED: AS MINT IS DIRECT TO PARTICIPANT WHEN CHECKOUT IS CALLED */
-
-    // transfer NFTs to participants
-    // called by owner via Volunteer.sol's unlockProject
-    function transferAfterUnlock(uint256 projId, address[] calldata participants) public {
-        require(tx.origin == owner(), "Only owner can award tokens.");
-
-        for (uint256 i = 0; i < participants.length; i++) {
-            address participant = participants[i];
-            if (participant == address(0)) break; // break if address(0) as address[] may not be filled up completely
-            safeTransferFrom(tx.origin, participant, projId, 1, "");
-        } 
-
-        emit TransferComplete(projId, participants);
+    // mint nfts to the volunteer
+    // called via Volunteer.sol's lockProject
+    function mintAfterCheckout(uint256 projId, address volunteer) public onlyOwner {
+        _mint(volunteer, projId, 1, "");
     }
 
     // override URI for indiv project metadata uri
@@ -62,16 +33,29 @@ contract VolunteerToken is ERC1155 {
         return string(abi.encodePacked(_baseURI, "collection.json"));
     }
 
-    // making it soulbound, ie. only owner can transfer/burn tokens
-    function _updateWithAcceptanceCheck(
-        address from, 
-        address to, 
-        uint256[] memory ids, 
-        uint256[] memory values,
+    // making it soulbound, ie. only minting from address(0) is possible
+    // Override safeTransferFrom to prevent token transfers
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
         bytes memory data
-        ) internal override {
-            super._updateWithAcceptanceCheck(from, to, ids, values, data);
-            require(address(0) == from || owner() == from || to == address(0), "Only charity (owner) can transfer/burn tokens");
-        }
+    ) public virtual override {
+        require(from == address(0) || to == address(0), "Only mint/burn allowed."); // only allow minting/burning
+        super.safeTransferFrom(from, to, id, amount, data);
+    }
+
+    // Override safeBatchTransferFrom to prevent token transfers. 
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public virtual override {
+        require(from == address(0) || to == address(0), "Only batch mint/burn allowed."); // only allow batch minting/burning
+        super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
 
 }
