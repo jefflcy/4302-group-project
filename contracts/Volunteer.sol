@@ -12,35 +12,37 @@ contract Volunteer is Ownable {
     VolunteerToken volunteerTokenContract;
 
     struct VolunteerProject {
-        uint256 id;
-        uint256 maxVolunteers;
+        uint256 projId;
         address[] participatingVolunteers;
-        uint8 volunteerCount;
-        uint256 startDateTime; // new impl
-        uint256 endDateTime; // new impl
+        uint256 startDateTime; 
+        uint256 endDateTime;
     }
 
-    /* HOW TO USE DATE TIME AS UINT IN SOLIDITY */
+    /*
+        DATE TIME IN SOLIDITY: stored as seconds since 1st Jan 1970 
+        USE: https://www.site24x7.com/tools/time-stamp-converter.html for testing
+    */
 
-    // uint startDate = 1638352800; // 2012-12-01 10:00:00
-    // uint endDate = 1638871200; // 2012-12-07 10:00:00
-    // uint daysDiff = (endDate - startDate) / 60 / 60 / 24; // 6 days
-
-    struct VolunteerInfo {
-        uint256 totalHours;
-        uint256[] startTimes; // new
-        uint256[] endTimes; // new
-        uint256[] projectHistory;
+    struct TempVolunteer {
+        uint256 startTime; // the temporary holder for the start time on an ongoing project
+        uint256 endTime; // the temporary holder for the end time on an ongoing project
     }
 
-    VolunteerProject[] public projects;
-    mapping(address => VolunteerInfo) volunteers;
+    VolunteerProject[] projects;
+    mapping(uint256 => address[]) tempVolunteerAddresses; // maps projId to address array to keep track of all tempVolunteers -- used during endProject
+    mapping(uint256 => mapping(address => TempVolunteer)) tempVolunteers; // maps projId to mapping of volunteer address to a TempVolunteer struct for an ongoing project (projId)
+    mapping(address => uint256) volunteerTotalHours; // maps volunteer address to volunteer's totalHours clocked 
+    mapping(address => mapping(uint256 => uint256)) volunteerHistory; // maps volunteer address to mapping of projId to hoursClocked for each project
 
-    event ProjectCreated(uint256 indexed projectId);
-    event VolunteerCheckedIn(uint256 indexed projectId, address volunteer);
-    /* ADD EVENT FOR CHECKOUT HERE */
+    event ProjectCreated(uint256 indexed projId, uint256 startDateTime, uint256 endDateTime);
+    event VolunteerCheckedIn(uint256 indexed projId, address volunteer);
+    event VolunteerCheckedOut(uint256 indexed projId, address volunteer);
+    event ProjectEnded(uint256 indexed projId);
 
-    /* ADD ACCESS MODIFIER FOR VALID PROJ ID*/
+    modifier validProjId(uint256 projId) {
+        require(projId >= 0 && projId < getNextProjId(), "Invalid Project ID.");
+        _;
+    }
 
     // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
     constructor(string memory _uri) Ownable(msg.sender) {
@@ -54,101 +56,130 @@ contract Volunteer is Ownable {
 
         /* ADD NEW REQUIRE STATEMENTS HERE */
 
-        uint256 projectId = projects.length;
+        uint256 projId = getNextProjId();
 
         // Init empty volunteers array
         address[] memory participatingVolunteers;
 
-        // projects.push(
-        //     VolunteerProject({
-        //     })
-        // );
+        projects.push(
+            VolunteerProject({
+                projId : projId,
+                participatingVolunteers : participatingVolunteers,
+                startDateTime : startDateTime,
+                endDateTime : endDateTime
+            })
+        );
 
-        emit ProjectCreated(projectId);
+        emit ProjectCreated(projId, startDateTime, endDateTime);
     }
 
-    function checkIn(uint256 projectId) public {
-        
-        VolunteerProject storage project = projects[projectId]; 
+    function checkIn(uint256 projId) public validProjId(projId) {
+        VolunteerProject storage project = projects[projId];
 
-        require(projectId < projects.length, "Invalid project ID"); // TO BE PULLED OUT TO MODIFIER
+        require(block.timestamp >= project.startDateTime, "Project has not started.");
         require(
-            project.volunteerCount + 1 <= project.maxVolunteers,
-            "Project has already hit the volunteer limit"
-        );
-        require(
-            !isVolunteerInProject(projectId, msg.sender),
-            "Volunteer has already checked in"
+            !isVolunteerInProject(projId, msg.sender),
+            "Volunteer has already checked in."
         );
 
+        // ADD to VolunteerProject struct
         project.participatingVolunteers.push(msg.sender);
-        project.volunteerCount += 1; // Increment the counter
 
-        emit VolunteerCheckedIn(projectId, msg.sender);
+        // ADD to tempVolunteerAddresses
+        tempVolunteerAddresses[projId].push(msg.sender);
+
+        // CREATE TempVolunteer struct
+        tempVolunteers[projId][msg.sender] = 
+            TempVolunteer({
+                startTime : 0,
+                endTime : 0
+            });
+
+        // UPDATE startTime in TempVolunteer struct
+        tempVolunteers[projId][msg.sender].startTime = block.timestamp;
+
+        emit VolunteerCheckedIn(projId, msg.sender);
     }
 
+    function checkOut(uint256 projId) public validProjId(projId) {
+        VolunteerProject memory project = projects[projId];
+        require(block.timestamp <= project.endDateTime, "Project has already ended.");        
+        _checkOut(projId, msg.sender);
+    }
 
-    /* TO BE REMOVED, LEAVING HERE FOR REFERENCE */
+    function _checkOut(uint256 projId, address volunteer) private validProjId(projId) {
+        VolunteerProject memory project = projects[projId];
+        require(
+            isVolunteerInProject(projId, volunteer),
+            "Volunteer did not check in to this project."
+        );
+        TempVolunteer memory tempVolunteer = tempVolunteers[projId][volunteer];
 
-    // function lockProject(uint256 projectId) public {
-    //     require(projectId < projects.length, "Invalid project ID");
-    //     VolunteerProject storage project = projects[projectId];
-    //     require(
-    //         project.currentState == projectState.created,
-    //         "Project has been locked previously"
-    //     );
+        // ADD endTime to TempVolunteer struct ACCORDINGLY
+        if (block.timestamp >= project.endDateTime) {
+            tempVolunteer.endTime = project.endDateTime; // for endProject
+        } else {
+            tempVolunteer.endTime = block.timestamp;
+        }
+            
+        // CALCULATE hoursClocked
+        uint256 hoursClocked = Math.ceilDiv((tempVolunteer.endTime - tempVolunteer.startTime), 3600);
 
-    //     project.currentState = projectState.ongoing;
+        // ADD hoursClocked to volunteerTotalHours and volunteerHistory
+        volunteerTotalHours[volunteer] += hoursClocked;
+        volunteerHistory[volunteer][projId] = hoursClocked;
 
-    //     volunteerTokenContract.mintAfterLockProject(
-    //         projectId,
-    //         project.participatingVolunteers.length
-    //     );
+        // MINT the token to volunteer's EOA
+        volunteerTokenContract.mintAfterCheckout(projId, volunteer);
 
-    //     project.startDateTime = block.timestamp;
+        // EMIT the VolunteerCheckedOut event
+        emit VolunteerCheckedOut(projId, volunteer);
+    }
 
-    //     emit ProjectLocked(projectId, project.startDateTime);
-    // }
+    /* 
+     *  NEW FUNCTION TO PURGE ALL VOLUNTEERS THAT CHECKED IN BUT NEVER CHECKOUT 
+     *  TO ENSURE STATE CONSISTENCY
+     *  CALLED BY CHARITY 
+     */
+    function endProject(uint256 projId) public onlyOwner validProjId(projId) {
+        require(projects[projId].participatingVolunteers.length > 0, "No Volunteers have checked in yet.");
 
-    /* TO BE CHANGED TO CHECKOUT, LEAVING HERE FOR REFERENCE */
-    // function unlockProject(uint256 projectId) public {
-    //     require(projectId < projects.length, "Invalid project ID");
-    //     VolunteerProject storage project = projects[projectId];
-    //     require(
-    //         project.currentState == projectState.ongoing,
-    //         "Project is not locked"
-    //     );
+        // check out participants who have checked in but not checked out
+        for (uint i = 0; i < tempVolunteerAddresses[projId].length; i++) {
 
-    //     project.endDateTime = block.timestamp;
-    //     uint256 hoursElapsed = (project.endDateTime - project.startDateTime) /
-    //         3600;
-    //     uint256 hoursToDistribute = Math.min(hoursElapsed, project.maxHours);
+            // to get wallet addresses to loop thru tempVolunteers
+            address volunteer = tempVolunteerAddresses[projId][i];
 
-    //     project.currentState = projectState.ended;
+            // using the wallet address to get the corresponding TempVolunteer for that projId
+            TempVolunteer memory tempVolunteer = tempVolunteers[projId][volunteer];
 
-    //     volunteerTokenContract.transferAfterUnlock(
-    //         projectId,
-    //         project.participatingVolunteers
-    //     );
+            // check if he has checkedOut or not
+            if (tempVolunteer.endTime == 0) { // did not check Out
+                _checkOut(projId, volunteer);
+            }
+        }
 
-    //     for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
-    //         address volunteerAdd = project.participatingVolunteers[i];
+        // purge tempVolunteers and tempVolunteerAddresses for that projId
+        for (uint i = 0; i < tempVolunteerAddresses[projId].length; i++) {
 
-    //         VolunteerInfo storage volunteer = volunteers[volunteerAdd];
-    //         volunteer.totalHours += hoursToDistribute;
-    //         volunteer.projectHistory[projectId] = hoursToDistribute;
-    //     }
+            // to get wallet addresses to loop thru tempVolunteers
+            address volunteer = tempVolunteerAddresses[projId][i];
 
-    //     emit ProjectUnlocked(projectId, project.endDateTime);
-    // }
+            // remove each TempVolunteer struct linked to that wallet address
+            delete tempVolunteers[projId][volunteer];
+        }
+        // remove address[] linked to that projId
+        delete tempVolunteerAddresses[projId];
 
+        emit ProjectEnded(projId);
+    }
     
     
     // HELPER FUNCTIONS
     function isVolunteerInProject(
         uint256 projId,
         address volunteer
-    ) public view returns (bool) {
+    ) private view returns (bool) {
         VolunteerProject memory project = projects[projId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {
@@ -164,20 +195,14 @@ contract Volunteer is Ownable {
         return projects.length;
     }
 
-    function getTotalHours(address volunteerAdd) public view returns (uint256) {
-        VolunteerInfo storage volunteer = volunteers[volunteerAdd];
-        uint256 volunteerHours = volunteer.totalHours;
-
-        return volunteerHours;
+    function getTotalHours(address volunteer) public view returns (uint256) {
+        return volunteerTotalHours[volunteer];
     }
 
     function getProjectHours(
-        address volunteerAdd,
-        uint256 projectId
+        uint256 projId,
+        address volunteer
     ) public view returns (uint256) {
-        VolunteerInfo storage volunteer = volunteers[volunteerAdd];
-        uint256 volunteerHours = volunteer.projectHistory[projectId];
-
-        return volunteerHours;
+        return volunteerHistory[volunteer][projId];
     }
 }
