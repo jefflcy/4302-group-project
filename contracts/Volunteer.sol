@@ -20,7 +20,7 @@ contract Volunteer is Ownable {
 
     /*
         DATE TIME IN SOLIDITY: stored as seconds since 1st Jan 1970 
-        USE: https://www.site24x7.com/tools/time-stamp-converter.html for testing
+        USE: https://www.epochconverter.com/ for testing
     */
 
     struct TempVolunteer {
@@ -113,17 +113,16 @@ contract Volunteer is Ownable {
             isVolunteerInProject(projId, volunteer),
             "Volunteer did not check in to this project."
         );
-        TempVolunteer memory tempVolunteer = tempVolunteers[projId][volunteer];
 
         // ADD endTime to TempVolunteer struct ACCORDINGLY
         if (block.timestamp >= project.endDateTime) {
-            tempVolunteer.endTime = project.endDateTime; // for endProject
+            tempVolunteers[projId][volunteer].endTime = project.endDateTime; // for endProject
         } else {
-            tempVolunteer.endTime = block.timestamp;
+            tempVolunteers[projId][volunteer].endTime = block.timestamp;
         }
             
         // CALCULATE hoursClocked
-        uint256 hoursClocked = Math.ceilDiv((tempVolunteer.endTime - tempVolunteer.startTime), 3600);
+        uint256 hoursClocked = Math.ceilDiv((tempVolunteers[projId][volunteer].endTime - tempVolunteers[projId][volunteer].startTime), 3600);
 
         // ADD hoursClocked to volunteerTotalHours and volunteerHistory
         volunteerTotalHours[volunteer] += hoursClocked;
@@ -151,10 +150,9 @@ contract Volunteer is Ownable {
             address volunteer = tempVolunteerAddresses[projId][i];
 
             // using the wallet address to get the corresponding TempVolunteer for that projId
-            TempVolunteer memory tempVolunteer = tempVolunteers[projId][volunteer];
 
             // check if he has checkedOut or not
-            if (tempVolunteer.endTime == 0) { // did not check Out
+            if (tempVolunteers[projId][volunteer].endTime == 0) { // did not check Out
                 _checkOut(projId, volunteer);
             }
         }
