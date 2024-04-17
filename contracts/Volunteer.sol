@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "./VolunteerToken.sol";
+import {VolunteerToken} from "./VolunteerToken.sol";
 
 contract Volunteer is Ownable {
 
@@ -148,8 +148,6 @@ contract Volunteer is Ownable {
 
             // to get wallet addresses to loop thru tempVolunteers
             address volunteer = tempVolunteerAddresses[projId][i];
-
-            // using the wallet address to get the corresponding TempVolunteer for that projId
 
             // check if he has checkedOut or not
             if (tempVolunteers[projId][volunteer].endTime == 0) { // did not check Out
