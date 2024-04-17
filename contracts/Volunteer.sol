@@ -8,13 +8,12 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {VolunteerToken} from "./VolunteerToken.sol";
 
 contract Volunteer is Ownable {
-
     VolunteerToken volunteerTokenContract;
 
     struct VolunteerProject {
         uint256 projId;
         address[] participatingVolunteers;
-        uint256 startDateTime; 
+        uint256 startDateTime;
         uint256 endDateTime;
     }
 
@@ -31,10 +30,14 @@ contract Volunteer is Ownable {
     VolunteerProject[] projects;
     mapping(uint256 => address[]) tempVolunteerAddresses; // maps projId to address array to keep track of all tempVolunteers -- used during endProject
     mapping(uint256 => mapping(address => TempVolunteer)) tempVolunteers; // maps projId to mapping of volunteer address to a TempVolunteer struct for an ongoing project (projId)
-    mapping(address => uint256) volunteerTotalHours; // maps volunteer address to volunteer's totalHours clocked 
+    mapping(address => uint256) volunteerTotalHours; // maps volunteer address to volunteer's totalHours clocked
     mapping(address => mapping(uint256 => uint256)) volunteerHistory; // maps volunteer address to mapping of projId to hoursClocked for each project
 
-    event ProjectCreated(uint256 indexed projId, uint256 startDateTime, uint256 endDateTime);
+    event ProjectCreated(
+        uint256 indexed projId,
+        uint256 startDateTime,
+        uint256 endDateTime
+    );
     event VolunteerCheckedIn(uint256 indexed projId, address volunteer);
     event VolunteerCheckedOut(uint256 indexed projId, address volunteer);
     event ProjectEnded(uint256 indexed projId);
@@ -53,8 +56,12 @@ contract Volunteer is Ownable {
         uint startDateTime,
         uint endDateTime
     ) public onlyOwner {
-
         /* ADD NEW REQUIRE STATEMENTS HERE */
+        require(endDateTime > startDateTime, "Invalid Start and End Timings.");
+        require(
+            endDateTime > block.timestamp,
+            "End Time must be in the future."
+        );
 
         uint256 projId = getNextProjId();
 
@@ -63,10 +70,10 @@ contract Volunteer is Ownable {
 
         projects.push(
             VolunteerProject({
-                projId : projId,
-                participatingVolunteers : participatingVolunteers,
-                startDateTime : startDateTime,
-                endDateTime : endDateTime
+                projId: projId,
+                participatingVolunteers: participatingVolunteers,
+                startDateTime: startDateTime,
+                endDateTime: endDateTime
             })
         );
 
@@ -76,7 +83,18 @@ contract Volunteer is Ownable {
     function checkIn(uint256 projId) public validProjId(projId) {
         VolunteerProject storage project = projects[projId];
 
-        require(block.timestamp >= project.startDateTime, "Project has not started.");
+        require(
+            block.timestamp >= project.startDateTime,
+            "Project has not started."
+        );
+        require(
+            block.timestamp < project.endDateTime - 3600,
+            "Project has ended or will be ending soon."
+        ); // cannnot check in when there is an hour left in the allocated Project time
+        require(
+            volunteerHistory[msg.sender][projId] == 0,
+            "You have already participated in the Project."
+        );
         require(
             !isVolunteerInProject(projId, msg.sender),
             "Volunteer has already checked in."
@@ -89,11 +107,10 @@ contract Volunteer is Ownable {
         tempVolunteerAddresses[projId].push(msg.sender);
 
         // CREATE TempVolunteer struct
-        tempVolunteers[projId][msg.sender] = 
-            TempVolunteer({
-                startTime : 0,
-                endTime : 0
-            });
+        tempVolunteers[projId][msg.sender] = TempVolunteer({
+            startTime: 0,
+            endTime: 0
+        });
 
         // UPDATE startTime in TempVolunteer struct
         tempVolunteers[projId][msg.sender].startTime = block.timestamp;
@@ -103,26 +120,41 @@ contract Volunteer is Ownable {
 
     function checkOut(uint256 projId) public validProjId(projId) {
         VolunteerProject memory project = projects[projId];
-        require(block.timestamp <= project.endDateTime, "Project has already ended.");        
+        require(
+            block.timestamp <= project.endDateTime,
+            "Project has already ended."
+        );
         _checkOut(projId, msg.sender);
     }
 
-    function _checkOut(uint256 projId, address volunteer) private validProjId(projId) {
+    function _checkOut(
+        uint256 projId,
+        address volunteer
+    ) private validProjId(projId) {
         VolunteerProject memory project = projects[projId];
         require(
             isVolunteerInProject(projId, volunteer),
             "Volunteer did not check in to this project."
         );
+        require(
+            volunteerHistory[volunteer][projId] == 0,
+            "You have already participated in the Project."
+        );
+
+        TempVolunteer storage tempVolunteer = tempVolunteers[projId][volunteer];
 
         // ADD endTime to TempVolunteer struct ACCORDINGLY
         if (block.timestamp >= project.endDateTime) {
-            tempVolunteers[projId][volunteer].endTime = project.endDateTime; // for endProject
+            tempVolunteer.endTime = project.endDateTime; // for endProject
         } else {
-            tempVolunteers[projId][volunteer].endTime = block.timestamp;
+            tempVolunteer.endTime = block.timestamp;
         }
-            
+
         // CALCULATE hoursClocked
-        uint256 hoursClocked = Math.ceilDiv((tempVolunteers[projId][volunteer].endTime - tempVolunteers[projId][volunteer].startTime), 3600);
+        uint256 hoursClocked = Math.ceilDiv(
+            (tempVolunteer.endTime - tempVolunteer.startTime),
+            3600
+        );
 
         // ADD hoursClocked to volunteerTotalHours and volunteerHistory
         volunteerTotalHours[volunteer] += hoursClocked;
@@ -135,29 +167,35 @@ contract Volunteer is Ownable {
         emit VolunteerCheckedOut(projId, volunteer);
     }
 
-    /* 
-     *  NEW FUNCTION TO PURGE ALL VOLUNTEERS THAT CHECKED IN BUT NEVER CHECKOUT 
+    /*
+     *  NEW FUNCTION TO PURGE ALL VOLUNTEERS THAT CHECKED IN BUT NEVER CHECKOUT
      *  TO ENSURE STATE CONSISTENCY
-     *  CALLED BY CHARITY 
+     *  CALLED BY CHARITY
      */
     function endProject(uint256 projId) public onlyOwner validProjId(projId) {
-        require(projects[projId].participatingVolunteers.length > 0, "No Volunteers have checked in yet.");
+        require(
+            projects[projId].participatingVolunteers.length > 0,
+            "No Volunteers have checked in yet."
+        );
 
         // check out participants who have checked in but not checked out
         for (uint i = 0; i < tempVolunteerAddresses[projId].length; i++) {
-
             // to get wallet addresses to loop thru tempVolunteers
             address volunteer = tempVolunteerAddresses[projId][i];
 
+            // using wallet address to get corresponding TempVolunteer for that projId
+            TempVolunteer memory tempVolunteer = tempVolunteers[projId][
+                volunteer
+            ];
             // check if he has checkedOut or not
-            if (tempVolunteers[projId][volunteer].endTime == 0) { // did not check Out
+            if (tempVolunteer.endTime == 0) {
+                // did not check Out
                 _checkOut(projId, volunteer);
             }
         }
 
         // purge tempVolunteers and tempVolunteerAddresses for that projId
         for (uint i = 0; i < tempVolunteerAddresses[projId].length; i++) {
-
             // to get wallet addresses to loop thru tempVolunteers
             address volunteer = tempVolunteerAddresses[projId][i];
 
@@ -169,8 +207,7 @@ contract Volunteer is Ownable {
 
         emit ProjectEnded(projId);
     }
-    
-    
+
     // HELPER FUNCTIONS
     function isVolunteerInProject(
         uint256 projId,
@@ -185,8 +222,7 @@ contract Volunteer is Ownable {
         return false;
     }
 
-
-    // GETTER FUNCTIONS 
+    // GETTER FUNCTIONS
     function getNextProjId() public view returns (uint256) {
         return projects.length;
     }
