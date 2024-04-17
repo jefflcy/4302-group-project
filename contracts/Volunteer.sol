@@ -27,7 +27,7 @@ contract Volunteer is Ownable {
         uint256 endTime; // the temporary holder for the end time on an ongoing project
     }
 
-    VolunteerProject[] projects;
+    VolunteerProject[] projects; // array of all projects ever created
     mapping(uint256 => address[]) tempVolunteerAddresses; // maps projId to address array to keep track of all tempVolunteers -- used during endProject
     mapping(uint256 => mapping(address => TempVolunteer)) tempVolunteers; // maps projId to mapping of volunteer address to a TempVolunteer struct for an ongoing project (projId)
     mapping(address => uint256) volunteerTotalHours; // maps volunteer address to volunteer's totalHours clocked
@@ -161,7 +161,14 @@ contract Volunteer is Ownable {
         volunteerHistory[volunteer][projId] = hoursClocked;
 
         // MINT the token to volunteer's EOA
-        volunteerTokenContract.mintAfterCheckout(projId, volunteer);
+        uint256 maxEventHours = Math.ceilDiv(
+            (project.endDateTime - project.startDateTime),
+            3600
+        );
+        (bool success, uint256 result) = Math.tryDiv(maxEventHours, 2);
+        if (hoursClocked >= result && success) {
+            volunteerTokenContract.mintAfterCheckout(projId, volunteer);
+        }
 
         // EMIT the VolunteerCheckedOut event
         emit VolunteerCheckedOut(projId, volunteer);
@@ -223,18 +230,48 @@ contract Volunteer is Ownable {
     }
 
     // GETTER FUNCTIONS
-    function getNextProjId() public view returns (uint256) {
+    function getNextProjId() public view returns (uint256 projId) {
         return projects.length;
     }
 
-    function getTotalHours(address volunteer) public view returns (uint256) {
+    function getTotalHours(
+        address volunteer
+    ) public view returns (uint256 totalHours) {
         return volunteerTotalHours[volunteer];
     }
 
     function getProjectHours(
         uint256 projId,
         address volunteer
-    ) public view returns (uint256) {
+    ) public view returns (uint256 hoursClocked) {
         return volunteerHistory[volunteer][projId];
+    }
+
+    function getAllProjectHours(
+        address volunteer
+    )
+        public
+        view
+        returns (uint256[] memory projectIds, uint256[] memory projectHours)
+    {
+        uint256 count = 0;
+        for (uint256 i = 0; i < projects.length; i++) {
+            uint256 projHours = volunteerHistory[volunteer][i];
+            if (projHours != 0) {
+                projectIds[count] = i;
+                projectHours[count] = projHours;
+                count++;
+            }
+        }
+
+        return (projectIds, projectHours);
+    }
+
+    function getVolunteerTokenAddress()
+        public
+        view
+        returns (address volunteerTokenAddress)
+    {
+        return address(volunteerTokenContract);
     }
 }
