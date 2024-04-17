@@ -44,7 +44,13 @@ To set up and test the smart contracts, follow these steps:
    ```
 
 6. **Start Ganache**:
-   Launch Ganache. If using the CLI version, run:
+   Make sure you have the latest version of Ganache, though deprecated.
+
+   ```
+   npm install -g ganache
+   ```
+
+   Once done, launch Ganache CLI and run:
 
    ```
    ganache-cli
