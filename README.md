@@ -60,9 +60,16 @@ To set up and test the smart contracts, follow these steps:
 
 7. **Deploy the Contracts**:
    Compile and deploy the smart contracts to your local blockchain using Truffle:
+
    ```
    truffle compile
    truffle migrate
+   ```
+
+8. **Testing the Contracts**:
+   Write unit tests to `test_volunteer.js` and test them using Truffle:
+   ```
+   truffle test
    ```
 
 ## Usage
