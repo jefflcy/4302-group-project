@@ -11,8 +11,6 @@ const truffleAssert = require('truffle-assertions');
 // may need moment.js for datetime or use Date(): Math.floor(new Date().getTime() / 1000)
 const {time, expectRevert} = require('@openzeppelin/test-helpers'); // npm install @openzeppelin/test-helpers
 const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
-const {time, expectRevert} = require('@openzeppelin/test-helpers'); // npm install @openzeppelin/test-helpers
-const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
 
 /* INSERT UNIT TESTS BELOW */
 
