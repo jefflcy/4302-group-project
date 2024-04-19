@@ -5,9 +5,12 @@ const { expectRevertCustomError } = require("custom-error-test-helper"); // pack
 
 var assert = require("assert");
 const truffleAssert = require('truffle-assertions');
+const truffleAssert = require('truffle-assertions');
 // may need bignumber for testing
 // may need truffleassertions for testing
 // may need moment.js for datetime or use Date(): Math.floor(new Date().getTime() / 1000)
+const {time, expectRevert} = require('@openzeppelin/test-helpers'); // npm install @openzeppelin/test-helpers
+const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
 const {time, expectRevert} = require('@openzeppelin/test-helpers'); // npm install @openzeppelin/test-helpers
 const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
 
@@ -20,8 +23,9 @@ contract("Volunteer", (accounts) => {
   console.log("Testing Volunteer and VolunteerToken contracts");
 
   // ------------------- Test cases -------------------
+  // Start and End Timings of projects need to be updated before testing
 
-  it("should create a new VolunteerToken on deployment", async function () {
+  it("Should create a new VolunteerToken on deployment", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
     // console.log("Token Address: ", tokenAddress); // for testing
@@ -34,9 +38,11 @@ contract("Volunteer", (accounts) => {
   });
 
   it("Should restrict createProject to only the owner", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(4);
     await expectRevertCustomError(
       Volunteer,
-      volunteerInstance.createProject(1713400581, 1713486981, {
+      volunteerInstance.createProject(startTime, endTime, { 
         from: accounts[1],
       }),
       "OwnableUnauthorizedAccount"
@@ -184,4 +190,183 @@ contract("Volunteer", (accounts) => {
       "Only batch mint/burn allowed."
     );
   });
-});
+
+  it("Should not allow project start timing to be later than end timing", async () => {
+    let startTime = startTimeAfter(4);
+    let endTime = endTimeAfter(3);
+    await expectRevert(volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+      }),
+      "Invalid Start and End Timings.",  
+    );
+  });
+
+  it("Should not allow project end timing to be earlier than the current time", async () => {
+    let startTime = startTimePrior(6);
+    let endTime = startTimePrior(2);
+    await expectRevert(volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+      }),
+      "End Time must be in the future.",  
+    );
+  });
+
+  // Project 0 is created 
+  it("Should create a new VolunteerProject when createProject is called with valid inputs", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6);
+    let proj = await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
+    let nextProjId = await volunteerInstance.getNextProjId();
+
+    truffleAssert.eventEmitted(proj, 'ProjectCreated');
+    assert.equal(nextProjId, 1);
+  });
+
+  it("Should not allow project owner to check in", async () => {
+    await expectRevert(volunteerInstance.checkIn(0, {
+      from: accounts[0],
+      }),
+      "Cannot check in to your own project.",  
+    );
+  });
+
+  // Project 1 is created
+  it("Should not allow volunteer to check in before project start time", async () => {
+    let startTime = startTimeAfter(2);
+    let endTime = endTimeAfter(10);
+    await volunteerInstance.createProject(startTime, endTime, { 
+      from: accounts[0],
+    });
+    await expectRevert(volunteerInstance.checkIn(1, {
+      from: accounts[1],
+      }),
+      "Project has not started.",  
+    );
+  });
+
+  // Project 2 is created 
+  it("Should not allow volunteer to check in after project has ended", async () => {
+    let startTime = startTimePrior(6);
+    let endTime = endTimeAfter(2);
+    await volunteerInstance.createProject(startTime, endTime, { 
+      from: accounts[0],
+    });
+
+    await time.increase(time.duration.hours(4));
+
+    await expectRevert(volunteerInstance.checkIn(2, {
+      from: accounts[1],
+      }),
+      "Project has ended.",  
+    );
+  });
+
+  // Project 3 is created and accounts[1] is checked in
+  it("Should allow volunteer to successfully check in", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6)
+    await volunteerInstance.createProject(startTime, endTime, { 
+      from: accounts[0],
+    });
+    let volunteer = await volunteerInstance.checkIn(3, {
+      from: accounts[1],
+    });
+    let checkedIn = await volunteerInstance.isVolunteerInProject(3, accounts[1]);
+
+    truffleAssert.eventEmitted(volunteer, 'VolunteerCheckedIn');
+    assert.equal(checkedIn, true);
+
+  });
+
+  //CHECKOUT
+  it("should revert if trying to check out after the project has ended", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 7200; // project started 2 hours ago
+    const endTime = currentTime + 7200; // project ended 1 hour ago
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+
+
+    //Volunteer first check in
+    await volunteerInstance.checkIn(projId, { from: accounts[1] });
+
+    // Advancing time to after the project ends
+    await advanceTime(8000);  // Advance time by 8000 seconds, so project is over
+
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[1] }),
+      "Project has already ended."
+    );
+  });
+
+  it("should revert if trying to check out without having checked in", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 3600; // project started 1 hour ago
+    const endTime = currentTime + 3600; // project ends in 1 hour
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[2] }),
+      "Volunteer did not check in to this project."
+    );
+  });
+
+  it("should revert if the volunteer tries to check out again after already completing the project", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 3600; // project started 1 hour ago
+    const endTime = currentTime + 7200; // project ends in 2 hours
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    await volunteerInstance.checkIn(projId, { from: accounts[3] });
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+    await advanceTime(3600);
+
+    await volunteerInstance.checkOut(projId, { from: accounts[3] });
+
+    // Check the state to confirm participation is recorded
+    const hoursClocked = await volunteerInstance.getProjectHours(projId, accounts[3]);
+    assert(hoursClocked > 0, "Volunteer hours should be recorded");
+
+    // Try to check out again
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[3] }),
+      "You have already participated in the Project."
+    );
+  });
+})

@@ -12,6 +12,7 @@ contract Volunteer is Ownable {
 
     struct VolunteerProject {
         uint256 projId;
+        address owner;
         address[] participatingVolunteers;
         uint256 startDateTime;
         uint256 endDateTime;
@@ -78,6 +79,7 @@ contract Volunteer is Ownable {
         projects.push(
             VolunteerProject({
                 projId: projId,
+                owner: msg.sender,
                 participatingVolunteers: participatingVolunteers,
                 startDateTime: startDateTime,
                 endDateTime: endDateTime
@@ -91,13 +93,14 @@ contract Volunteer is Ownable {
         VolunteerProject storage project = projects[projId];
 
         require(
+            msg.sender != project.owner,
+            "Cannot check in to your own project."
+        );
+        require(
             block.timestamp >= project.startDateTime,
             "Project has not started."
         );
-        require(
-            block.timestamp < project.endDateTime - 3600,
-            "Project has ended or will be ending soon."
-        ); // cannnot check in when there is an hour left in the allocated Project time
+        require(block.timestamp < project.endDateTime, "Project has ended.");
         require(
             volunteerHistory[msg.sender][projId] == 0,
             "You have already participated in the Project."
@@ -226,7 +229,7 @@ contract Volunteer is Ownable {
     function isVolunteerInProject(
         uint256 projId,
         address volunteer
-    ) private view returns (bool) {
+    ) public view returns (bool) {
         VolunteerProject memory project = projects[projId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {
