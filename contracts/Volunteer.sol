@@ -222,7 +222,7 @@ contract Volunteer is Ownable {
     function isVolunteerInProject(
         uint256 projId,
         address volunteer
-    ) private view returns (bool) {
+    ) public view returns (bool) {
         VolunteerProject memory project = projects[projId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {

@@ -89,9 +89,9 @@ contract("Volunteer", (accounts) => {
 
   // Project 1 is created
   it("Should not allow volunteer to check in before project start time", async () => {
-    let startTIme = startTimeAfter(2);
+    let startTime = startTimeAfter(2);
     let endTime = endTimeAfter(10);
-    await volunteerInstance.createProject(startTIme, endTime, { 
+    await volunteerInstance.createProject(startTime, endTime, { 
       from: accounts[0],
     });
     await expectRevert(volunteerInstance.checkIn(1, {
@@ -128,10 +128,100 @@ contract("Volunteer", (accounts) => {
     let volunteer = await volunteerInstance.checkIn(3, {
       from: accounts[1],
     });
-    let checkedIn = volunteerInstance.isVolunteerInProject(3, accounts[1]);
+    let checkedIn = await volunteerInstance.isVolunteerInProject(3, accounts[1]);
 
     truffleAssert.eventEmitted(volunteer, 'VolunteerCheckedIn');
     assert.equal(checkedIn, true);
 
   });
-});
+
+  //CHECKOUT
+  it("should revert if trying to check out after the project has ended", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 7200; // project started 2 hours ago
+    const endTime = currentTime + 7200; // project ended 1 hour ago
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+
+
+    //Volunteer first check in
+    await volunteerInstance.checkIn(projId, { from: accounts[1] });
+
+    // Advancing time to after the project ends
+    await advanceTime(8000);  // Advance time by 8000 seconds, so project is over
+
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[1] }),
+      "Project has already ended."
+    );
+  });
+
+  it("should revert if trying to check out without having checked in", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 3600; // project started 1 hour ago
+    const endTime = currentTime + 3600; // project ends in 1 hour
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[2] }),
+      "Volunteer did not check in to this project."
+    );
+  });
+
+  it("should revert if the volunteer tries to check out again after already completing the project", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 3600; // project started 1 hour ago
+    const endTime = currentTime + 7200; // project ends in 2 hours
+
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1;
+
+    await volunteerInstance.checkIn(projId, { from: accounts[3] });
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+    await advanceTime(3600);
+
+    await volunteerInstance.checkOut(projId, { from: accounts[3] });
+
+    // Check the state to confirm participation is recorded
+    const hoursClocked = await volunteerInstance.getProjectHours(projId, accounts[3]);
+    assert(hoursClocked > 0, "Volunteer hours should be recorded");
+
+    // Try to check out again
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(projId, { from: accounts[3] }),
+      "You have already participated in the Project."
+    );
+  });
+})
