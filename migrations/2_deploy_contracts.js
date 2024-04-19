@@ -1,4 +1,5 @@
 const Volunteer = artifacts.require("../contracts/Volunteer.sol");
+const VolunteerToken = artifacts.require("../contracts/VolunteerToken.sol");
 
 module.exports = (deployer, network, accounts) => {
   const tokenUri =
