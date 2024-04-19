@@ -109,4 +109,76 @@ contract("Volunteer", (accounts) => {
       "OwnableUnauthorizedAccount"
     );
   });
+
+  it("Should mint a token after checkout", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await volunteerTokenInstance.mintAfterCheckout(projId, accounts[1], {
+      from: accounts[0],
+    });
+    const balance = await volunteerTokenInstance.balanceOf(accounts[1], projId);
+    assert.equal(balance, 1, "Balance should be 1 after minting");
+  });
+  
+  it("Should not allow non-owner to mint a token", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await expectRevertCustomError(
+      VolunteerToken,
+      volunteerTokenInstance.mintAfterCheckout(projId, accounts[1], {
+        from: accounts[2],
+      }),
+      "OwnableUnauthorizedAccount"
+    );
+  });
+  
+  it("Should return correct URI for a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    const uri = await volunteerTokenInstance.uri(projId);
+    assert.equal(
+      uri,
+      "https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/0.json",
+      "URI should be correct"
+    );
+  });
+  
+  it("Should return correct contract URI", async () => {
+    const contractUri = await volunteerTokenInstance.contractURI();
+    assert.equal(
+      contractUri,
+      "https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/collection.json",
+      "Contract URI should be correct"
+    );
+  });
+  
+  it("Should not allow token transfer", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await expectRevertCustomError(
+      VolunteerToken,
+      volunteerTokenInstance.safeTransferFrom(
+        accounts[1],
+        accounts[2],
+        projId,
+        1,
+        "0x0",
+        { from: accounts[1] }
+      ),
+      "Only mint/burn allowed."
+    );
+  });
+  
+  it("Should not allow batch token transfer", async () => {
+    const projIds = [0, 1]; // Assuming projects with IDs 0 and 1 exist
+    const amounts = [1, 1];
+    await expectRevertCustomError(
+      VolunteerToken,
+      volunteerTokenInstance.safeBatchTransferFrom(
+        accounts[1],
+        accounts[2],
+        projIds,
+        amounts,
+        "0x0",
+        { from: accounts[1] }
+      ),
+      "Only batch mint/burn allowed."
+    );
+  });
 });
