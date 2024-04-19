@@ -5,12 +5,9 @@ const { expectRevertCustomError } = require("custom-error-test-helper"); // pack
 
 var assert = require("assert");
 const truffleAssert = require('truffle-assertions');
-const truffleAssert = require('truffle-assertions');
 // may need bignumber for testing
 // may need truffleassertions for testing
 // may need moment.js for datetime or use Date(): Math.floor(new Date().getTime() / 1000)
-const {time, expectRevert} = require('@openzeppelin/test-helpers'); // npm install @openzeppelin/test-helpers
-const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
 
 /* INSERT UNIT TESTS BELOW */
 
