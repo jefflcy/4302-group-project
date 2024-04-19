@@ -102,23 +102,19 @@ contract("Volunteer", (accounts) => {
   });
 
   // Project 2 is created 
-  it("Should not allow volunteer to check in an hour before project end or after project has ended", async () => {
+  it("Should not allow volunteer to check in after project has ended", async () => {
     let startTime = startTimePrior(6);
-    let endTime = endTimeAfter(0.5);
+    let endTime = endTimeAfter(2);
     await volunteerInstance.createProject(startTime, endTime, { 
       from: accounts[0],
     });
-    await expectRevert(volunteerInstance.checkIn(2, {
-      from: accounts[1],
-      }),
-      "Project has ended or will be ending soon.",  
-    );
 
-    await time.increase(time.duration.hours(2));
+    await time.increase(time.duration.hours(4));
+
     await expectRevert(volunteerInstance.checkIn(2, {
       from: accounts[1],
       }),
-      "Project has ended or will be ending soon.",  
+      "Project has ended.",  
     );
   });
 

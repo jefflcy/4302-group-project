@@ -93,10 +93,7 @@ contract Volunteer is Ownable {
             block.timestamp >= project.startDateTime,
             "Project has not started."
         );
-        require(
-            block.timestamp < project.endDateTime - 3600,
-            "Project has ended or will be ending soon."
-        ); // cannnot check in when there is an hour left in the allocated Project time
+        require(block.timestamp < project.endDateTime, "Project has ended.");
         require(
             volunteerHistory[msg.sender][projId] == 0,
             "You have already participated in the Project."
