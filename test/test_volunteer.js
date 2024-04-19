@@ -39,4 +39,74 @@ contract("Volunteer", (accounts) => {
       "OwnableUnauthorizedAccount"
     );
   });
+
+  it("Should create a new project", async () => {
+    const startDateTime = Math.floor(new Date().getTime() / 1000);
+    const endDateTime = startDateTime + 3600; // 1 hour later
+    await volunteerInstance.createProject(startDateTime, endDateTime, {
+      from: accounts[0],
+    });
+    const projId = await volunteerInstance.getNextProjId();
+    assert.equal(projId, 1, "Project ID should be incremented");
+  });
+  
+  it("Should not allow non-owner to create a project", async () => {
+    const startDateTime = Math.floor(new Date().getTime() / 1000);
+    const endDateTime = startDateTime + 3600; // 1 hour later
+    await expectRevertCustomError(
+      Volunteer,
+      volunteerInstance.createProject(startDateTime, endDateTime, {
+        from: accounts[1],
+      }),
+      "OwnableUnauthorizedAccount"
+    );
+  });
+  
+  it("Should allow a volunteer to check in to a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await volunteerInstance.checkIn(projId, { from: accounts[1] });
+    const hours = await volunteerInstance.getProjectHours(projId, accounts[1]);
+    assert.equal(hours, 0, "Hours should be 0 before checkout");
+  });
+  
+  it("Should not allow a volunteer to check in to a non-existent project", async () => {
+    const projId = 999; // Assuming a project with ID 999 does not exist
+    await expectRevertCustomError(
+      Volunteer,
+      volunteerInstance.checkIn(projId, { from: accounts[1] }),
+      "Invalid Project ID."
+    );
+  });
+  
+  it("Should allow a volunteer to check out from a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await volunteerInstance.checkOut(projId, { from: accounts[1] });
+    const hours = await volunteerInstance.getProjectHours(projId, accounts[1]);
+    assert(hours > 0, "Hours should be greater than 0 after checkout");
+  });
+  
+  it("Should not allow a volunteer to check out from a non-existent project", async () => {
+    const projId = 999; // Assuming a project with ID 999 does not exist
+    await expectRevertCustomError(
+      Volunteer,
+      volunteerInstance.checkOut(projId, { from: accounts[1] }),
+      "Invalid Project ID."
+    );
+  });
+  
+  it("Should allow the owner to end a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await volunteerInstance.endProject(projId, { from: accounts[0] });
+    const hours = await volunteerInstance.getProjectHours(projId, accounts[1]);
+    assert(hours > 0, "Hours should be greater than 0 after project end");
+  });
+  
+  it("Should not allow non-owner to end a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await expectRevertCustomError(
+      Volunteer,
+      volunteerInstance.endProject(projId, { from: accounts[1] }),
+      "OwnableUnauthorizedAccount"
+    );
+  });
 });

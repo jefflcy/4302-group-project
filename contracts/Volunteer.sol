@@ -57,7 +57,14 @@ contract Volunteer is Ownable {
         uint endDateTime
     ) public onlyOwner {
         /* ADD NEW REQUIRE STATEMENTS HERE */
-        require(endDateTime > startDateTime, "Invalid Start and End Timings.");
+        require(
+            endDateTime > startDateTime,
+            "End Time must be greater than Start Time."
+        );
+        require(
+            endDateTime > block.timestamp,
+            "End Time must be in the future."
+        );
         require(
             endDateTime > block.timestamp,
             "End Time must be in the future."
