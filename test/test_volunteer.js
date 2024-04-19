@@ -67,74 +67,74 @@ contract("Volunteer", (accounts) => {
     );
   });
 
-  // Project 0 is created 
-  // it("Should create a new VolunteerProject when createProject is called with valid inputs", async () => {
-  //   let startTime = startTimePrior(2);
-  //   let endTime = endTimeAfter(6);
-  //   let proj = await volunteerInstance.createProject(startTime, endTime, {
-  //     from: accounts[0],
-  //   });
-  //   let nextProjId = await volunteerInstance.getNextProjId();
+  // Project 0 is created
+  it("Should create a new VolunteerProject when createProject is called with valid inputs", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6);
+    let proj = await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
+    let nextProjId = await volunteerInstance.getNextProjId();
 
-  //   truffleAssert.eventEmitted(proj, 'ProjectCreated');
-  //   assert.equal(nextProjId, 1);
-  // });
+    truffleAssert.eventEmitted(proj, 'ProjectCreated');
+    assert.equal(nextProjId, 1);
+  });
 
-  // it("Should not allow project owner to check in", async () => {
-  //   await expectRevert(volunteerInstance.checkIn(0, {
-  //     from: accounts[0],
-  //   }),
-  //     "Cannot check in to your own project.",
-  //   );
-  // });
+  it("Should not allow project owner to check in", async () => {
+    await expectRevert(volunteerInstance.checkIn(0, {
+      from: accounts[0],
+    }),
+      "Cannot check in to your own project.",
+    );
+  });
 
-  // // Project 1 is created
-  // it("Should not allow volunteer to check in before project start time", async () => {
-  //   let startTime = startTimeAfter(2);
-  //   let endTime = endTimeAfter(10);
-  //   await volunteerInstance.createProject(startTime, endTime, {
-  //     from: accounts[0],
-  //   });
-  //   await expectRevert(volunteerInstance.checkIn(1, {
-  //     from: accounts[1],
-  //   }),
-  //     "Project has not started.",
-  //   );
-  // });
+  // Project 1 is created
+  it("Should not allow volunteer to check in before project start time", async () => {
+    let startTime = startTimeAfter(2);
+    let endTime = endTimeAfter(10);
+    await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
+    await expectRevert(volunteerInstance.checkIn(1, {
+      from: accounts[1],
+    }),
+      "Project has not started.",
+    );
+  });
 
-  // // Project 2 is created 
-  // it("Should not allow volunteer to check in after project has ended", async () => {
-  //   let startTime = startTimePrior(6);
-  //   let endTime = endTimeAfter(2);
-  //   await volunteerInstance.createProject(startTime, endTime, {
-  //     from: accounts[0],
-  //   });
+  // Project 2 is created 
+  it("Should not allow volunteer to check in after project has ended", async () => {
+    let startTime = startTimePrior(6);
+    let endTime = endTimeAfter(2);
+    await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
 
-  //   await time.increase(time.duration.hours(4));
+    await time.increase(time.duration.hours(4));
 
-  //   await expectRevert(volunteerInstance.checkIn(2, {
-  //     from: accounts[1],
-  //   }),
-  //     "Project has ended.",
-  //   );
-  // });
+    await expectRevert(volunteerInstance.checkIn(2, {
+      from: accounts[1],
+    }),
+      "Project has ended.",
+    );
+  });
 
-  // // Project 3 is created and accounts[1] is checked in
-  // it("Should allow volunteer to successfully check in", async () => {
-  //   let startTime = startTimePrior(2);
-  //   let endTime = endTimeAfter(6)
-  //   await volunteerInstance.createProject(startTime, endTime, {
-  //     from: accounts[0],
-  //   });
-  //   let volunteer = await volunteerInstance.checkIn(3, {
-  //     from: accounts[1],
-  //   });
-  //   let checkedIn = await volunteerInstance.isVolunteerInProject(3, accounts[1]);
+  // Project 3 is created and accounts[1] is checked in
+  it("Should allow volunteer to successfully check in", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6)
+    await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
+    let volunteer = await volunteerInstance.checkIn(3, {
+      from: accounts[1],
+    });
+    let checkedIn = await volunteerInstance.isVolunteerInProject(3, accounts[1]);
 
-  //   truffleAssert.eventEmitted(volunteer, 'VolunteerCheckedIn');
-  //   assert.equal(checkedIn, true);
+    truffleAssert.eventEmitted(volunteer, 'VolunteerCheckedIn');
+    assert.equal(checkedIn, true);
 
-  // });
+  });
 
   //-------------------------------------CHECKOUT------------------------------------------//
   it("should revert if trying to check out after the project has ended", async () => {
