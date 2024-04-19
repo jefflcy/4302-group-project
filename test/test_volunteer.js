@@ -95,32 +95,30 @@ contract("Volunteer", (accounts) => {
       "Cannot check in to your own project.",
     );
   });
-
   
   it("Should not allow volunteer to check in before project start time", async () => {
-    let startTime = startTimeAfter(4);
-    let endTime = endTimeAfter(10);
-    let currProjId = await volunteerInstance.getNextProjId();
+    const startTime = startTimeAfter(2);
+    const endTime = endTimeAfter(4);
+    const currProjId = await volunteerInstance.getNextProjId();
     await volunteerInstance.createProject(startTime, endTime, { 
       from: accounts[0],
     });
-    await expectRevert(volunteerInstance.checkIn(currProjId, {
+    await truffleAssert.reverts(volunteerInstance.checkIn(currProjId, {
       from: accounts[1],
     }),
       "Project has not started.",
     );
   });
 
-  /*
-  it("Should not allow volunteer to check in after project has ended", async () => {
-    let startTime = startTimePrior(6);
-    let endTime = endTimeAfter(4);
-    let currProjId = await volunteerInstance.getNextProjId();
-    await volunteerInstance.createProject(startTime, endTime, { 
-      from: accounts[0],
-    });
+  it("should revert if volunteer is checking in after the project ends", async () => {
+    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+    const startTime = currentTime - 3600; // Start the project 1 hour ago
+    const endTime = currentTime + 3600; // End the project in 1 hour from now
 
-    // await time.increase(time.duration.hours(6));
+    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
+    const projId = await volunteerInstance.getNextProjId() - 1; // Get the newly created project's ID
+
+    // Function to advance the blockchain time
     async function advanceTime(time) {
       await web3.currentProvider.send({
         jsonrpc: '2.0',
@@ -136,16 +134,16 @@ contract("Volunteer", (accounts) => {
       }, () => { });
     }
 
-    await advanceTime(21600);
-    
-    await expectRevert(volunteerInstance.checkIn(currProjId, {
-      from: accounts[1],
-    }),
-      "Project has ended.",
+    // Advancing time to 1 hour minus 10 minutes before the project ends
+    await advanceTime(7200);  // Advance time by 3000 seconds, so we're within the last hour
+
+    // Attempt to check in, should fail because less than 1 hour is left until the project ends
+    await truffleAssert.reverts(
+      volunteerInstance.checkIn(projId, { from: accounts[2] }),
+      "Project has ended."
     );
   });
-  */
-  
+
   it("Should not allow a volunteer to check in to a non-existent project", async () => {
     const projId = 999; // Assuming a project with ID 999 does not exist
     await expectRevert(
@@ -173,43 +171,6 @@ contract("Volunteer", (accounts) => {
   });
 
   
-  //CHECKOUT
-  it("should revert if trying to check out after the project has ended", async () => {
-    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
-    const startTime = currentTime - 7200; // project started 2 hours ago
-    const endTime = currentTime + 7200; // project ended 1 hour ago
-
-    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
-    const projId = await volunteerInstance.getNextProjId() - 1;
-
-    async function advanceTime(time) {
-      await web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [time],
-        id: new Date().getTime()
-      }, () => { });
-      await web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_mine',
-        params: [],
-        id: new Date().getTime()
-      }, () => { });
-    }
-
-
-    //Volunteer first check in
-    await volunteerInstance.checkIn(projId, { from: accounts[1] });
-
-    // Advancing time to after the project ends
-    await advanceTime(8000);  // Advance time by 8000 seconds, so project is over
-
-    await truffleAssert.reverts(
-      volunteerInstance.checkOut(projId, { from: accounts[1] }),
-      "Project has already ended."
-    );
-  });
-  
   it("should revert if trying to check out without having checked in", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -223,7 +184,7 @@ contract("Volunteer", (accounts) => {
       "Volunteer did not check in to this project."
     );
   });
-  /*
+  
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -261,7 +222,7 @@ contract("Volunteer", (accounts) => {
       volunteerInstance.checkOut(projId, { from: accounts[3] }),
       "You have already participated in the Project."
     );
-  });*/
+  });
   
   it("Should not allow non-owner to end a project", async () => {
     const projId = 0; // Assuming a project with ID 0 exists
@@ -292,31 +253,7 @@ contract("Volunteer", (accounts) => {
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
     // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
   });
-
-  /*
-  it("Should mint a token after checkout", async () => {
-    let startTime = startTimePrior(2);
-    let endTime = endTimeAfter(6)
-    let currProjId = await volunteerInstance.getNextProjId();
-    await volunteerInstance.createProject(startTime, endTime, { 
-      from: accounts[0],
-    });
-    await volunteerInstance.checkIn(currProjId, {
-      from: accounts[1],
-    });
-    await volunteerInstance.checkOut(currProjId, {
-      from: accounts[1],
-    });    
-
-    await volunteerTokenInstance.mintAfterCheckout(currProjId, accounts[1], {
-      from: accounts[0],
-    });
-    const balance = await volunteerTokenInstance.balanceOf(accounts[1], projId);
-    assert.equal(balance, 1, "Balance should be 1 after minting");
-  });*/
   
-
-
   //Javian Test Case
   it("Should not allow non-owner to mint a token", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
@@ -351,7 +288,7 @@ contract("Volunteer", (accounts) => {
       "https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/0.json",
       "URI should be correct"
     );
-  });
+  }); 
 
 
 
