@@ -228,6 +228,19 @@ contract Volunteer is Ownable {
         return false;
     }
 
+    function isCheckedOut(
+        uint256 projId,
+        address volunteer
+    ) public view returns (bool checkedOut) {
+        if (
+            isVolunteerInProject(projId, volunteer) &&
+            volunteerHistory[volunteer][projId] != 0
+        ) {
+            return true;
+        }
+        return false;
+    }
+
     // GETTER FUNCTIONS
     function getNextProjId() public view returns (uint256 projId) {
         return projects.length;
