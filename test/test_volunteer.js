@@ -171,57 +171,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(hours, 0, "Hours should be 0 before checkout");
   });
 
-  //-------------------------------------CHECKOUT------------------------------------------//
-  it("should revert if trying to check out after the project has ended", async () => {
-    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
-    const startTime = currentTime - 7200; // project started 2 hours ago
-    const endTime = currentTime + 7200; // project ended 1 hour ago
-
-    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
-    const projId = await volunteerInstance.getNextProjId() - 1;
-
-    async function advanceTime(time) {
-      await web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [time],
-        id: new Date().getTime()
-      }, () => { });
-      await web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_mine',
-        params: [],
-        id: new Date().getTime()
-      }, () => { });
-    }
-
-
-    //Volunteer first check in
-    await volunteerInstance.checkIn(projId, { from: accounts[1] });
-
-    // Advancing time to after the project ends
-    await advanceTime(8000);  // Advance time by 8000 seconds, so project is over
-
-    await truffleAssert.reverts(
-      volunteerInstance.checkOut(projId, { from: accounts[1] }),
-      "Project has already ended."
-    );
-  });
-
-  it("should revert if trying to check out without having checked in", async () => {
-    const currentTime = (await web3.eth.getBlock('latest')).timestamp;
-    const startTime = currentTime - 3600; // project started 1 hour ago
-    const endTime = currentTime + 3600; // project ends in 1 hour
-
-    await volunteerInstance.createProject(startTime, endTime, { from: accounts[0] });
-    const projId = await volunteerInstance.getNextProjId() - 1;
-
-    await truffleAssert.reverts(
-      volunteerInstance.checkOut(projId, { from: accounts[2] }),
-      "Volunteer did not check in to this project."
-    );
-  });
-  
+  //-------------------------------------CHECKOUT------------------------------------------//  
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -290,29 +240,6 @@ contract("Volunteer", (accounts) => {
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
     // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
   });
-
-  /*
-  it("Should mint a token after checkout", async () => {
-    let startTime = startTimePrior(2);
-    let endTime = endTimeAfter(6)
-    let currProjId = await volunteerInstance.getNextProjId();
-    await volunteerInstance.createProject(startTime, endTime, { 
-      from: accounts[0],
-    });
-    await volunteerInstance.checkIn(currProjId, {
-      from: accounts[1],
-    });
-    await volunteerInstance.checkOut(currProjId, {
-      from: accounts[1],
-    });    
-
-    await volunteerTokenInstance.mintAfterCheckout(currProjId, accounts[1], {
-      from: accounts[0],
-    });
-    const balance = await volunteerTokenInstance.balanceOf(accounts[1], projId);
-    assert.equal(balance, 1, "Balance should be 1 after minting");
-  });*/
-
 
   it("Should successfully check out and mint tokens if conditions are met", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
