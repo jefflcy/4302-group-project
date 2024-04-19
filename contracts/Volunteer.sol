@@ -123,10 +123,6 @@ contract Volunteer is Ownable {
 
     function checkOut(uint256 projId) public validProjId(projId) {
         VolunteerProject memory project = projects[projId];
-        require(
-            block.timestamp <= project.endDateTime,
-            "Project has already ended."
-        );
         _checkOut(projId, msg.sender);
     }
 
