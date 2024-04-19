@@ -17,7 +17,6 @@ contract("Volunteer", (accounts) => {
   let volunteerInstance;
   const tokenUri = "https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/";
   before(async () => {
-<<<<<<< HEAD
     volunteerInstance = await Volunteer.new(tokenUri, { from: accounts[0] });
   });
   console.log("Testing Volunteer and VolunteerToken contracts");
@@ -25,16 +24,6 @@ contract("Volunteer", (accounts) => {
   // ------------------- Test cases -------------------
   // Start and End Timings of projects need to be updated before testing
   
-=======
-    volunteerInstance = await Volunteer.deployed();
-
-  });
-  console.log("Testing Volunteer and VolunteerToken contracts");
-
-  //------------------ Test cases -------------------
-  ///Start and End Timings of projects need to be updated before testing
-
->>>>>>> 470e215e6b983b480a3c44b5516126513156b992
   it("Should create a new VolunteerToken on deployment", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -111,12 +100,8 @@ contract("Volunteer", (accounts) => {
   it("Should not allow volunteer to check in before project start time", async () => {
     let startTime = startTimeAfter(4);
     let endTime = endTimeAfter(10);
-<<<<<<< HEAD
     let currProjId = await volunteerInstance.getNextProjId();
     await volunteerInstance.createProject(startTime, endTime, { 
-=======
-    await volunteerInstance.createProject(startTime, endTime, {
->>>>>>> 470e215e6b983b480a3c44b5516126513156b992
       from: accounts[0],
     });
     await expectRevert(volunteerInstance.checkIn(currProjId, {
@@ -129,14 +114,9 @@ contract("Volunteer", (accounts) => {
   /*
   it("Should not allow volunteer to check in after project has ended", async () => {
     let startTime = startTimePrior(6);
-<<<<<<< HEAD
     let endTime = endTimeAfter(4);
     let currProjId = await volunteerInstance.getNextProjId();
     await volunteerInstance.createProject(startTime, endTime, { 
-=======
-    let endTime = endTimeAfter(2);
-    await volunteerInstance.createProject(startTime, endTime, {
->>>>>>> 470e215e6b983b480a3c44b5516126513156b992
       from: accounts[0],
     });
 
@@ -177,12 +157,8 @@ contract("Volunteer", (accounts) => {
   it("Should allow volunteer to successfully check in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6)
-<<<<<<< HEAD
     let currProjId = await volunteerInstance.getNextProjId();
     await volunteerInstance.createProject(startTime, endTime, { 
-=======
-    await volunteerInstance.createProject(startTime, endTime, {
->>>>>>> 470e215e6b983b480a3c44b5516126513156b992
       from: accounts[0],
     });
     let volunteer = await volunteerInstance.checkIn(currProjId, {
@@ -295,7 +271,6 @@ contract("Volunteer", (accounts) => {
       "OwnableUnauthorizedAccount"
     );
   });
-<<<<<<< HEAD
   
   it("Should allow the owner to end a project", async () => {
 
@@ -340,7 +315,6 @@ contract("Volunteer", (accounts) => {
     assert.equal(balance, 1, "Balance should be 1 after minting");
   });*/
   
-=======
 
 
   //Javian Test Case
@@ -381,6 +355,5 @@ contract("Volunteer", (accounts) => {
 
 
 
->>>>>>> 470e215e6b983b480a3c44b5516126513156b992
 
 })
