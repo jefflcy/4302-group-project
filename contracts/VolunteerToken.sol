@@ -7,25 +7,47 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract VolunteerToken is ERC1155, Ownable {
-
     // baseURI: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    // baseURI is the IPFS hash of the collection.json metadata
     string private _baseURI;
 
-    // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    // mapping stores the IPFS HASH to the file "0.json" for eg
+    mapping(uint256 => string) private _projectUriHashs;
+
     // owner is the Volunteer.sol CA
     constructor(string memory _uri) ERC1155(_uri) Ownable(msg.sender) {
         _baseURI = _uri;
-    } 
+    }
 
     // mint nfts to the volunteer
     // called via Volunteer.sol's lockProject
-    function mintAfterCheckout(uint256 projId, address volunteer) public onlyOwner {
+    function mintAfterCheckout(
+        uint256 projId,
+        address volunteer
+    ) public onlyOwner {
         _mint(volunteer, projId, 1, "");
+    }
+
+    // STORE URIHASH FOR EACH PROJECT
+    function setUriHash(
+        uint256 projId,
+        string memory _uriHash
+    ) public onlyOwner {
+        _projectUriHashs[projId] = _uriHash;
     }
 
     // override URI for indiv project metadata uri
     function uri(uint256 projId) public view override returns (string memory) {
-        return string(abi.encodePacked(_baseURI, Strings.toString(projId), ".json"));
+        return
+            string(
+                abi.encodePacked(
+                    "https://ipfs.io/ipfs/",
+                    _projectUriHashs[projId],
+                    "/",
+                    Strings.toString(projId),
+                    ".json"
+                )
+            );
     }
 
     // URI for entire contract for opensea
@@ -42,11 +64,14 @@ contract VolunteerToken is ERC1155, Ownable {
         uint256 amount,
         bytes memory data
     ) public virtual override {
-        require(from == address(0) || to == address(0), "Only mint/burn allowed."); // only allow minting/burning
+        require(
+            from == address(0) || to == address(0),
+            "Only mint/burn allowed."
+        ); // only allow minting/burning
         super.safeTransferFrom(from, to, id, amount, data);
     }
 
-    // Override safeBatchTransferFrom to prevent token transfers. 
+    // Override safeBatchTransferFrom to prevent token transfers.
     function safeBatchTransferFrom(
         address from,
         address to,
@@ -54,8 +79,10 @@ contract VolunteerToken is ERC1155, Ownable {
         uint256[] memory amounts,
         bytes memory data
     ) public virtual override {
-        require(from == address(0) || to == address(0), "Only batch mint/burn allowed."); // only allow batch minting/burning
+        require(
+            from == address(0) || to == address(0),
+            "Only batch mint/burn allowed."
+        ); // only allow batch minting/burning
         super.safeBatchTransferFrom(from, to, ids, amounts, data);
     }
-
 }
