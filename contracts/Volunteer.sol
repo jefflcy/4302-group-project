@@ -47,6 +47,16 @@ contract Volunteer is Ownable {
         _;
     }
 
+    modifier validUriHash(string memory uriHash) {
+        require(
+            bytes(uriHash).length == 46 &&
+                bytes(uriHash)[0] == 0x51 &&
+                bytes(uriHash)[1] == 0x6D,
+            "Invalid uriHash."
+        );
+        _;
+    }
+
     // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
     constructor(string memory _uri) Ownable(msg.sender) {
         volunteerTokenContract = new VolunteerToken(_uri);
@@ -55,20 +65,19 @@ contract Volunteer is Ownable {
     function createProject(
         uint startDateTime,
         uint endDateTime,
-        string memory uri
-    ) public onlyOwner {
+        string memory uriHash
+    ) public onlyOwner validUriHash(uriHash) {
         /* ADD NEW REQUIRE STATEMENTS HERE */
         require(endDateTime > startDateTime, "Invalid Start and End Timings.");
         require(
             endDateTime > block.timestamp,
             "End Time must be in the future."
         );
-        require(bytes(uri).length > 0, "URI cannot be empty.");
 
         uint256 projId = getNextProjId();
 
         // STORE THE URI IN THE VOLUNTEERTOKEN CONTRACT
-        volunteerTokenContract.setURI(projId, uri);
+        volunteerTokenContract.setUriHash(projId, uriHash);
 
         // Init empty volunteers array
         address[] memory participatingVolunteers;
@@ -88,14 +97,12 @@ contract Volunteer is Ownable {
     function checkIn(uint256 projId) public validProjId(projId) {
         VolunteerProject storage project = projects[projId];
 
+        require(msg.sender != owner(), "Cannot check in to your own project.");
         require(
             block.timestamp >= project.startDateTime,
             "Project has not started."
         );
-        require(
-            block.timestamp < project.endDateTime - 3600,
-            "Project has ended or will be ending soon."
-        ); // cannnot check in when there is an hour left in the allocated Project time
+        require(block.timestamp < project.endDateTime, "Project has ended.");
         require(
             volunteerHistory[msg.sender][projId] == 0,
             "You have already participated in the Project."
@@ -124,10 +131,9 @@ contract Volunteer is Ownable {
     }
 
     function checkOut(uint256 projId) public validProjId(projId) {
-        VolunteerProject memory project = projects[projId];
         require(
-            block.timestamp <= project.endDateTime,
-            "Project has already ended."
+            getProjectHours(projId, msg.sender) == 0,
+            "You have already checked out / Project organiser has checked you out."
         );
         _checkOut(projId, msg.sender);
     }
@@ -142,8 +148,8 @@ contract Volunteer is Ownable {
             "Volunteer did not check in to this project."
         );
         require(
-            volunteerHistory[volunteer][projId] == 0,
-            "You have already participated in the Project."
+            getProjectHours(projId, volunteer) == 0,
+            "User has already checked out."
         );
 
         TempVolunteer storage tempVolunteer = tempVolunteers[projId][volunteer];
@@ -224,12 +230,25 @@ contract Volunteer is Ownable {
     function isVolunteerInProject(
         uint256 projId,
         address volunteer
-    ) private view returns (bool) {
+    ) public view returns (bool) {
         VolunteerProject memory project = projects[projId];
         for (uint256 i = 0; i < project.participatingVolunteers.length; i++) {
             if (project.participatingVolunteers[i] == volunteer) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    function isCheckedOut(
+        uint256 projId,
+        address volunteer
+    ) public view returns (bool checkedOut) {
+        if (
+            isVolunteerInProject(projId, volunteer) &&
+            volunteerHistory[volunteer][projId] != 0
+        ) {
+            return true;
         }
         return false;
     }
