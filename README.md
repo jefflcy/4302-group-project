@@ -83,7 +83,7 @@ To set up and test the smart contracts, follow these steps:
   1. Call `checkIn` with the `projId` at the start ( >= project.startDateTime).
   2. Call `checkOut` with the `projId` at the end ( <= project.endDateTime).
 
-## Criteria
+## Function Criteria
 
 - **Calling of `createProject`**:
   1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `createProject` function
@@ -103,8 +103,6 @@ To set up and test the smart contracts, follow these steps:
 
 - **Time Tracking**: Utilizes `block.timestamp` for tracking the check-in and check-out times of volunteers.
 - **Token Issuance**: A token representing participation is minted for volunteers who check out properly by the end of the project.
-
-## Function Criterias 
 
 ## Limitations
 - **Single Day Events Only**  contract support events with defined start and end times but doesn't explicitly cater to events spanning multiple days. This could limit the flexibility of the platform, especially for events or volunteer activities that naturally extend beyond a single day.
