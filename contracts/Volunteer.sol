@@ -47,6 +47,16 @@ contract Volunteer is Ownable {
         _;
     }
 
+    modifier validURI(string memory uri) {
+        require(
+            bytes(uri).length == 46 &&
+                bytes(uri)[0] == 0x51 &&
+                bytes(uri)[1] == 0x6D,
+            "Invalid URI."
+        );
+        _;
+    }
+
     // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
     constructor(string memory _uri) Ownable(msg.sender) {
         volunteerTokenContract = new VolunteerToken(_uri);
@@ -56,7 +66,7 @@ contract Volunteer is Ownable {
         uint startDateTime,
         uint endDateTime,
         string memory uri
-    ) public onlyOwner {
+    ) public onlyOwner validURI(uri) {
         /* ADD NEW REQUIRE STATEMENTS HERE */
         require(endDateTime > startDateTime, "Invalid Start and End Timings.");
         require(
@@ -64,7 +74,6 @@ contract Volunteer is Ownable {
             "End Time must be in the future."
         );
         require(bytes(uri).length > 0, "URI cannot be empty.");
-        require(isValidIPFS(uri), "Invalid URI.");
 
         uint256 projId = getNextProjId();
 
@@ -243,18 +252,6 @@ contract Volunteer is Ownable {
             return true;
         }
         return false;
-    }
-
-    function isValidIPFS(string memory uri) private pure returns (bool) {
-        if (
-            bytes(uri).length != 46 ||
-            bytes(uri)[0] != 0x51 || // Check if first 2 characters are "Qm"
-            bytes(uri)[1] != 0x6D
-        ) {
-            return false;
-        } else {
-            return true;
-        }
     }
 
     // GETTER FUNCTIONS

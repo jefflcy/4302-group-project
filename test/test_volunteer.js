@@ -71,21 +71,16 @@ contract("Volunteer", (accounts) => {
     );
   });
 
-  it("Should not allow project to have an empty URI", async () => {
-    let startTime = startTimePrior(2);
-    let endTime = endTimeAfter(6);
-    await expectRevert(volunteerInstance.createProject(startTime, endTime, { 
-      from: accounts[0],
-    }),
-     "URI cannot be empty.",
-    );
-  });
-
-  it("Should not allow project to have an invalid URI", async () => {
+  it("Should not allow project to have an invalid or empty URI", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
     let wrongURI = "nopeiamwronghehe";
     await expectRevert(volunteerInstance.createProject(startTime, endTime, wrongURI, { 
+      from: accounts[0],
+    }),
+     "Invalid URI.",
+    );
+    await expectRevert(volunteerInstance.createProject(startTime, endTime, { 
       from: accounts[0],
     }),
      "Invalid URI.",
