@@ -7,6 +7,10 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {VolunteerToken} from "./VolunteerToken.sol";
 
+/// @title Volunteer Management Contract
+/// @dev Manages volunteer projects and tracks volunteer participation hours
+/// @notice This contract handles all operations related to creating projects,
+///         registering volunteer hours, and issuing tokens based on participation.
 contract Volunteer is Ownable {
     VolunteerToken volunteerTokenContract;
 
@@ -42,6 +46,7 @@ contract Volunteer is Ownable {
     event VolunteerCheckedOut(uint256 indexed projId, address volunteer);
     event ProjectEnded(uint256 indexed projId);
 
+    /// @dev Ensures the provided project ID is valid
     modifier validProjId(uint256 projId) {
         require(projId >= 0 && projId < getNextProjId(), "Invalid Project ID.");
         _;
@@ -62,6 +67,10 @@ contract Volunteer is Ownable {
         volunteerTokenContract = new VolunteerToken(_uri);
     }
 
+    /// @notice Creates a new volunteer project
+    /// @param startDateTime Start time of the project (UNIX timestamp)
+    /// @param endDateTime End time of the project (UNIX timestamp)
+    /// @param uriHash IPFS hash of project-related metadata
     function createProject(
         uint startDateTime,
         uint endDateTime,
@@ -94,6 +103,8 @@ contract Volunteer is Ownable {
         emit ProjectCreated(projId, startDateTime, endDateTime);
     }
 
+    /// @notice Registers a volunteer's check-in to a project
+    /// @param projId The ID of the project to check into
     function checkIn(uint256 projId) public validProjId(projId) {
         VolunteerProject storage project = projects[projId];
 
@@ -130,6 +141,8 @@ contract Volunteer is Ownable {
         emit VolunteerCheckedIn(projId, msg.sender);
     }
 
+    /// @notice Finalizes a volunteer's participation in a project
+    /// @param projId The ID of the project to check out from
     function checkOut(uint256 projId) public validProjId(projId) {
         require(
             getProjectHours(projId, msg.sender) == 0,
@@ -138,6 +151,10 @@ contract Volunteer is Ownable {
         _checkOut(projId, msg.sender);
     }
 
+    /// @dev Handles the internal logic for checking a volunteer out of a project
+    /// @param projId The ID of the project from which the volunteer is checking out
+    /// @param volunteer The address of the volunteer to check out
+    /// @notice This function is only called internally and enforces project participation rules
     function _checkOut(
         uint256 projId,
         address volunteer
@@ -190,6 +207,10 @@ contract Volunteer is Ownable {
      *  TO ENSURE STATE CONSISTENCY
      *  CALLED BY CHARITY
      */
+    /// @notice Ends a project by checking out all volunteers who have not yet checked out
+    /// @dev This function is called by the project owner to finalize a project and ensure all volunteer hours are recorded correctly.
+    ///      It goes through the list of volunteers who checked in and checks them out if they haven't done so themselves.
+    /// @param projId The project ID to be ended
     function endProject(uint256 projId) public onlyOwner validProjId(projId) {
         require(
             projects[projId].participatingVolunteers.length > 0,
@@ -227,6 +248,10 @@ contract Volunteer is Ownable {
     }
 
     // HELPER FUNCTIONS
+    /// @notice Checks if a volunteer is currently participating in a given project
+    /// @param projId The project ID to check for participation
+    /// @param volunteer The address of the volunteer
+    /// @return bool True if the volunteer is part of the project's participating volunteer list
     function isVolunteerInProject(
         uint256 projId,
         address volunteer
@@ -240,6 +265,10 @@ contract Volunteer is Ownable {
         return false;
     }
 
+    /// @notice Determines if a volunteer has already checked out of a project
+    /// @param projId The project ID to check
+    /// @param volunteer The address of the volunteer
+    /// @return checkedOut True if the volunteer has checked out based on recorded hours
     function isCheckedOut(
         uint256 projId,
         address volunteer
@@ -254,16 +283,25 @@ contract Volunteer is Ownable {
     }
 
     // GETTER FUNCTIONS
+    /// @notice Retrieves the next available project ID, which is also the total count of projects
+    /// @return projId The ID for the next project to be created
     function getNextProjId() public view returns (uint256 projId) {
         return projects.length;
     }
 
+    /// @notice Gets the total hours clocked by a volunteer across all projects
+    /// @param volunteer The address of the volunteer
+    /// @return totalHours The total number of hours volunteered by the given address
     function getTotalHours(
         address volunteer
     ) public view returns (uint256 totalHours) {
         return volunteerTotalHours[volunteer];
     }
 
+    /// @notice Retrieves the number of hours a volunteer has clocked for a specific project
+    /// @param projId The ID of the project
+    /// @param volunteer The address of the volunteer
+    /// @return hoursClocked The hours recorded for the volunteer for the specified project
     function getProjectHours(
         uint256 projId,
         address volunteer
@@ -271,6 +309,10 @@ contract Volunteer is Ownable {
         return volunteerHistory[volunteer][projId];
     }
 
+    /// @notice Gets all project IDs and corresponding hours clocked by a volunteer
+    /// @param volunteer The address of the volunteer
+    /// @return projectIds Array of project IDs
+    /// @return projectHours Array of hours clocked corresponding to each project ID
     function getAllProjectHours(
         address volunteer
     )
@@ -291,6 +333,8 @@ contract Volunteer is Ownable {
         return (projectIds, projectHours);
     }
 
+    /// @notice Retrieves the address of the deployed VolunteerToken contract
+    /// @return volunteerTokenAddress The address of the VolunteerToken contract
     function getVolunteerTokenAddress()
         public
         view
