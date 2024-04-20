@@ -508,7 +508,7 @@ contract("Volunteer", (accounts) => {
 
     let check = await volunteerInstance.isCheckedOut(currProjId, accounts[1]);
 
-    assert.equal(check, true, "Volunteer has checked out");
+    assert.equal(check, true, "Volunteer should have been checked out");
   });
 
   it("Should successfully check if volunteer is checked in", async () => {
@@ -523,7 +523,7 @@ contract("Volunteer", (accounts) => {
 
     let check = await volunteerInstance.isVolunteerInProject(currProjId, accounts[1]);
 
-    assert.equal(check, true, "Volunteer has checked in");
+    assert.equal(check, true, "Volunteer should have been checked in");
   });
 
 })
