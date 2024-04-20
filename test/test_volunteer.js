@@ -404,7 +404,7 @@ contract("Volunteer", (accounts) => {
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
   });
 
-  it("Should not allow check out from a project they did not check into", async () => {
+  it("Should not allow volunteer to check out from a project they did not check into", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
     let currProjId = await volunteerInstance.getNextProjId();
@@ -416,7 +416,20 @@ contract("Volunteer", (accounts) => {
       volunteerInstance.checkOut(currProjId, { from: accounts[1] }),
       "Volunteer did not check in to this project."
     );
+  });
 
+  it("Should not allow owner to end a project with no volunteers checked in", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(10);
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, {
+      from: accounts[0],
+    });
+
+    await truffleAssert.reverts(
+      volunteerInstance.endProject(currProjId, { from: accounts[0] }),
+      "No Volunteers have checked in yet."
+    );
   });
   
   // ---------------------------------- Mint Token ------------------------------------------ //
