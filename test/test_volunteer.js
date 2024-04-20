@@ -12,6 +12,7 @@ const { time, expectRevert } = require('@openzeppelin/test-helpers'); // npm ins
 const { startTimeAfter, startTimePrior, endTimeAfter } = require('./helper');
 const { start } = require("repl");
 const exampleURI = "QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B";
+
 /* INSERT UNIT TESTS BELOW */
 
 contract("Volunteer", (accounts) => {
@@ -78,7 +79,18 @@ contract("Volunteer", (accounts) => {
     }),
      "URI cannot be empty.",
     );
-  })
+  });
+
+  it("Should not allow project to have an invalid URI", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6);
+    let wrongURI = "nopeiamwronghehe";
+    await expectRevert(volunteerInstance.createProject(startTime, endTime, wrongURI, { 
+      from: accounts[0],
+    }),
+     "Invalid URI.",
+    );
+  });
   
   it("Should create a new VolunteerProject when createProject is called with valid inputs", async () => {
     let startTime = startTimePrior(2);

@@ -64,6 +64,7 @@ contract Volunteer is Ownable {
             "End Time must be in the future."
         );
         require(bytes(uri).length > 0, "URI cannot be empty.");
+        require(isValidIPFS(uri), "Invalid URI.");
 
         uint256 projId = getNextProjId();
 
@@ -242,6 +243,18 @@ contract Volunteer is Ownable {
             return true;
         }
         return false;
+    }
+
+    function isValidIPFS(string memory uri) private pure returns (bool) {
+        if (
+            bytes(uri).length != 46 ||
+            bytes(uri)[0] != 0x51 || // Check if first 2 characters are "Qm"
+            bytes(uri)[1] != 0x6D
+        ) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     // GETTER FUNCTIONS
