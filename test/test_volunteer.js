@@ -189,6 +189,56 @@ contract("Volunteer", (accounts) => {
     assert.equal(checkedIn, true);
     assert.equal(hours, 0, "Hours should be 0 before checkout");
   });
+
+  it("Should not allow volunteer to check in after checking out", async () => {
+    const startTime = startTimePrior(2);
+    const endTime = endTimeAfter(4);
+    const currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, { 
+      from: accounts[0],
+    });
+    await volunteerInstance.checkIn(currProjId, { from: accounts[1] });
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+    await advanceTime(3600);
+    
+    await volunteerInstance.checkOut(currProjId, { from: accounts[1] });
+
+    await truffleAssert.reverts(volunteerInstance.checkIn(currProjId, {
+      from: accounts[1],
+    }),
+      "You have already participated in the Project.",
+    );
+  });
+
+  it("Should not allow volunteer to check in twice", async () => {
+    const startTime = startTimePrior(2);
+    const endTime = endTimeAfter(4);
+    const currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, { 
+      from: accounts[0],
+    });
+    await volunteerInstance.checkIn(currProjId, { from: accounts[1] });
+
+    await truffleAssert.reverts(volunteerInstance.checkIn(currProjId, {
+      from: accounts[1],
+    }),
+      "Volunteer has already checked in.",
+    );
+  });
   
   // -------------------------------------- Check Out ----------------------------------------------------------- //
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
