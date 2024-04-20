@@ -9,9 +9,12 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract VolunteerToken is ERC1155, Ownable {
 
     // baseURI: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    // baseURI is the IPFS hash of the collection.json metadata
     string private _baseURI;
 
-    // _uri: https://ipfs.io/ipfs/QmXHGAwVWFFstAHTX758FE5eiEb7TghFnUN3xfQCu2dk6B/
+    // mapping stores the IPFS HASH to the file "0.json" for eg
+    mapping(uint256 => string) private _projectURIs;
+
     // owner is the Volunteer.sol CA
     constructor(string memory _uri) ERC1155(_uri) Ownable(msg.sender) {
         _baseURI = _uri;
@@ -23,9 +26,16 @@ contract VolunteerToken is ERC1155, Ownable {
         _mint(volunteer, projId, 1, "");
     }
 
+    // STORE URI FOR EACH PROJECT
+    function setURI(uint256 projId, string memory _uri) public onlyOwner {
+        _projectURIs[projId] = _uri;
+    }
+
     // override URI for indiv project metadata uri
     function uri(uint256 projId) public view override returns (string memory) {
-        return string(abi.encodePacked(_baseURI, Strings.toString(projId), ".json"));
+        return string(abi.encodePacked("https://ipfs.io/ipfs/",
+                                        _projectURIs[projId], "/",
+                                         Strings.toString(projId), ".json"));
     }
 
     // URI for entire contract for opensea
