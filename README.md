@@ -77,11 +77,27 @@ To set up and test the smart contracts, follow these steps:
 - **Charities/Non-profits**:
   1. Obtain the `uri` for the your json files.
   2. Deploy the `Volunteer.sol` contract with that `uri` as parameter.
-  3. Call `createProject` with `startDateTime` & `endDateTime` as parameters.
+  3. Call `createProject` with `startDateTime`, `endDateTime` & `uriHash` as parameters.
   4. Call `endProject` with `projId` to finalize the project, which also handles volunteers who did not check out before the project's end.
 - **Participants**:
   1. Call `checkIn` with the `projId` at the start ( >= project.startDateTime).
   2. Call `checkOut` with the `projId` at the end ( <= project.endDateTime).
+
+## Criteria
+
+- **Calling of `createProject`
+  1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `createProject` function
+  2. Ensure that the inputted `uriHash` is valid, starting with 'Qm' and have a length of 46 characters.
+  3. Ensure that the `startDateTime` is earlier than the `endDateTime` and the `endDateTime` is in the future
+- **Calling of `checkIn`
+  1. Ensure that you are checking in within the Project Duration
+  2. Ensure that you are checking in to an existing Project with a Valid Project ID
+- **Calling of `checkOut`
+  1. Ensure that you are checking out of a Project that you had previously checked into
+  2. Ensure that the Project you are checking out of has not ended
+- **Calling of `endProject`
+  1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `endProject` function
+  2. Ensure that there are Volunteers in the Project that you want to end
 
 ## Features
 
