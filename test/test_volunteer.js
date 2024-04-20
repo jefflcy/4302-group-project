@@ -210,36 +210,6 @@ contract("Volunteer", (accounts) => {
       "You have already participated in the Project."
     );
   });
-  
-  it("Should not allow non-owner to end a project", async () => {
-    const projId = 0; // Assuming a project with ID 0 exists
-    await expectRevertCustomError(
-      Volunteer,
-      volunteerInstance.endProject(projId, { from: accounts[1] }),
-      "OwnableUnauthorizedAccount"
-    );
-  });
-
-  it("Should allow the owner to end a project", async () => {
-
-    let startTime = startTimePrior(2);
-    let endTime = endTimeAfter(6)
-    let currProjId = await volunteerInstance.getNextProjId();
-    await volunteerInstance.createProject(startTime, endTime, {
-      from: accounts[0],
-    });
-    await volunteerInstance.checkIn(currProjId, {
-      from: accounts[1],
-    });
-
-    let project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
-
-    // const hours = await volunteerInstance.getProjectHours(currProjId, accounts[1]);
-    // console.log(hours);
-    truffleAssert.eventEmitted(project, 'ProjectEnded');
-    truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
-    // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
-  });
 
   it("Should successfully check out and mint tokens if conditions are met", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
@@ -276,6 +246,38 @@ contract("Volunteer", (accounts) => {
     assert.equal(balance.toString(), "1", "Balance should be 1 after minting");
   });
   //-------------------------------------CHECKOUT------------------------------------------//
+
+  it("Should not allow non-owner to end a project", async () => {
+    const projId = 0; // Assuming a project with ID 0 exists
+    await expectRevertCustomError(
+      Volunteer,
+      volunteerInstance.endProject(projId, { from: accounts[1] }),
+      "OwnableUnauthorizedAccount"
+    );
+  });
+
+  it("Should allow the owner to end a project", async () => {
+
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(6)
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, {
+      from: accounts[0],
+    });
+    await volunteerInstance.checkIn(currProjId, {
+      from: accounts[1],
+    });
+
+    let project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
+
+    // const hours = await volunteerInstance.getProjectHours(currProjId, accounts[1]);
+    // console.log(hours);
+    truffleAssert.eventEmitted(project, 'ProjectEnded');
+    truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
+    // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
+  });
+
+
 
   //Javian Test Case
   it("Should not allow non-owner to mint a token", async () => {

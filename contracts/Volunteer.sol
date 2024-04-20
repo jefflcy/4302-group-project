@@ -12,7 +12,6 @@ contract Volunteer is Ownable {
 
     struct VolunteerProject {
         uint256 projId;
-        address owner;
         address[] participatingVolunteers;
         uint256 startDateTime;
         uint256 endDateTime;
@@ -72,7 +71,6 @@ contract Volunteer is Ownable {
         projects.push(
             VolunteerProject({
                 projId: projId,
-                owner: msg.sender,
                 participatingVolunteers: participatingVolunteers,
                 startDateTime: startDateTime,
                 endDateTime: endDateTime
@@ -85,10 +83,7 @@ contract Volunteer is Ownable {
     function checkIn(uint256 projId) public validProjId(projId) {
         VolunteerProject storage project = projects[projId];
 
-        require(
-            msg.sender != project.owner,
-            "Cannot check in to your own project."
-        );
+        require(msg.sender != owner(), "Cannot check in to your own project.");
         require(
             block.timestamp >= project.startDateTime,
             "Project has not started."
