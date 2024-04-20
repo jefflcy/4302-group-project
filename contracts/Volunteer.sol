@@ -54,7 +54,8 @@ contract Volunteer is Ownable {
 
     function createProject(
         uint startDateTime,
-        uint endDateTime
+        uint endDateTime,
+        string memory uri
     ) public onlyOwner {
         /* ADD NEW REQUIRE STATEMENTS HERE */
         require(endDateTime > startDateTime, "Invalid Start and End Timings.");
@@ -62,8 +63,12 @@ contract Volunteer is Ownable {
             endDateTime > block.timestamp,
             "End Time must be in the future."
         );
+        require(bytes(uri).length > 0, "URI cannot be empty.");
 
         uint256 projId = getNextProjId();
+
+        // STORE THE URI IN THE VOLUNTEERTOKEN CONTRACT
+        volunteerTokenContract.setURI(projId, uri);
 
         // Init empty volunteers array
         address[] memory participatingVolunteers;
