@@ -36,6 +36,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(firstProjId, 0);
   });
 
+  // ------------------- Create Project -------------------------------- //
   it("Should restrict createProject to only the owner", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(4);
@@ -83,6 +84,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(nextProjId, 1);
   });
 
+  // --------------------- Check In ------------------------ //
   it("Should not allow project owner to check in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
@@ -171,6 +173,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(hours, 0, "Hours should be 0 before checkout");
   });
 
+  // -------------------------------------- Check Out ----------------------------------------------------------- //
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -275,8 +278,7 @@ contract("Volunteer", (accounts) => {
     // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
   });
 
-//----------------------------------MINT TOKEN------------------------------------------//
-
+  // ---------------------------------- Mint Token ------------------------------------------ //
   // MOVE TO VOLUNTEERTOKEN.SOL WHEN READY //
   it("Should not allow non-owner to mint a token", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
