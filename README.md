@@ -88,6 +88,19 @@ To set up and test the smart contracts, follow these steps:
 - **Time Tracking**: Utilizes `block.timestamp` for tracking the check-in and check-out times of volunteers.
 - **Token Issuance**: A token representing participation is minted for volunteers who check out properly by the end of the project.
 
+## Function Criterias 
+
+## Limitations
+- **Single Day Events Only**  contract support events with defined start and end times but doesn't explicitly cater to events spanning multiple days. This could limit the flexibility of the platform, especially for events or volunteer activities that naturally extend beyond a single day.
+- **Whole Numbers for Time Tracking** The contract uses whole numbers (integers) for time tracking, which means it can't easily handle time measurements that require more precise calculations (like partial hours or minutes), potentially leading to rounding errors or imprecise tracking of volunteer hours.
+- **Lack of Event Modification Features**  Contract lacks methods for editing or updating details of an existing project once it has been created. This could pose challenges if there are changes to the event details, such as a change in timing or extending the duration of the project. Users would need to rely on external mechanisms to handle these changes, which could lead to discrepancies or the need to cancel and recreate projects.
+- **No Deletion of Projects** Current implementation provides basic error handling through require statements but does not implement more sophisticated error management strategies that could give users more detailed feedback about the nature of errors or how to correct them.
+- **Permission and Access Control Limitations:** The contract uses a simple ownership model with some functions restricted to the owner only. This may not be sufficient for organizations that require a more nuanced access control system with multiple levels of permissions for different types of administrative tasks.
+- **Dependence on Accurate Timekeeping:** The contract's logic heavily relies on the block.timestamp for checking in and checking out volunteers, which is known to be manipulable by miners to a certain degree. This reliance could potentially be exploited under certain conditions, leading to inaccurate tracking of project start or end times.
+- **Lack of Support for Fractional Token Minting** The system does not support issuing fractional tokens, which might be needed for more granular reward systems. For example, if volunteers earn tokens based on the exact number of minutes worked, the inability to handle fractions could limit the system's fairness or accuracy.
+
+
+
 ## License
 
 This project is open-sourced under the MIT License.
