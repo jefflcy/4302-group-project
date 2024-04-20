@@ -171,7 +171,6 @@ contract("Volunteer", (accounts) => {
     assert.equal(hours, 0, "Hours should be 0 before checkout");
   });
 
-  //-------------------------------------CHECKOUT------------------------------------------//  
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -245,7 +244,6 @@ contract("Volunteer", (accounts) => {
     const balance = await tokenInstance.balanceOf(accounts[4], projId);
     assert.equal(balance.toString(), "1", "Balance should be 1 after minting");
   });
-  //-------------------------------------CHECKOUT------------------------------------------//
 
   it("Should not allow non-owner to end a project", async () => {
     const projId = 0; // Assuming a project with ID 0 exists
@@ -279,7 +277,7 @@ contract("Volunteer", (accounts) => {
 
 
 
-  //Javian Test Case
+  // MOVE TO VOLUNTEERTOKEN.SOL WHEN READY //
   it("Should not allow non-owner to mint a token", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
