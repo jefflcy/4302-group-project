@@ -23,6 +23,7 @@ contract("Volunteer", (accounts) => {
   });
   console.log("Testing Volunteer and VolunteerToken contracts");
 
+
   // ------------------- Test cases -------------------
   // Start and End Timings of projects need to be updated before testing
 
@@ -33,6 +34,8 @@ contract("Volunteer", (accounts) => {
     assert(tokenInstance !== undefined, "VolunteerToken instance should exist");
   });
 
+
+  // ------------------ Getter Functions --------------------- //
   it("Should return the correct first projId", async () => {
     let firstProjId = await volunteerInstance.getNextProjId();
     assert.equal(firstProjId, 0);
@@ -101,6 +104,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(nextProjId, 1);
   });
   
+
   // --------------------- Check In ------------------------ //
   it("Should not allow project owner to check in", async () => {
     let startTime = startTimePrior(2);
@@ -240,6 +244,7 @@ contract("Volunteer", (accounts) => {
     );
   });
   
+
   // -------------------------------------- Check Out ----------------------------------------------------------- //
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
@@ -432,6 +437,7 @@ contract("Volunteer", (accounts) => {
     );
   });
   
+
   // ---------------------------------- Mint Token ------------------------------------------ //
   // MOVE TO VOLUNTEERTOKEN.SOL WHEN READY //
   it("Should not allow non-owner to mint a token", async () => {
@@ -470,7 +476,54 @@ contract("Volunteer", (accounts) => {
     );
   }); 
 
+  // ------------------ Getter Functions --------------------- //
+  it("Should successfully check if volunteer has checked out", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(10);
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, {
+      from: accounts[0],
+    });
 
+    await volunteerInstance.checkIn(currProjId, { from: accounts[1] });
 
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+
+    await advanceTime(3600);
+
+    await volunteerInstance.checkOut(currProjId, { from: accounts[1] });
+
+    let check = await volunteerInstance.isCheckedOut(currProjId, accounts[1]);
+
+    assert.equal(check, true, "Volunteer has checked out");
+  });
+
+  it("Should successfully check if volunteer is checked in", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(10);
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, {
+      from: accounts[0],
+    });
+
+    await volunteerInstance.checkIn(currProjId, { from: accounts[1] });
+
+    let check = await volunteerInstance.isVolunteerInProject(currProjId, accounts[1]);
+
+    assert.equal(check, true, "Volunteer has checked in");
+  });
 
 })
