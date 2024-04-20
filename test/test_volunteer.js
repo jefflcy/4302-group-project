@@ -325,9 +325,8 @@ contract("Volunteer", (accounts) => {
   });
 
   it("Should allow the owner to end a project", async () => {
-
     let startTime = startTimePrior(2);
-    let endTime = endTimeAfter(6)
+    let endTime = endTimeAfter(6);
     let currProjId = await volunteerInstance.getNextProjId();
     await volunteerInstance.createProject(startTime, endTime, exampleURI, {
       from: accounts[0],
@@ -336,13 +335,73 @@ contract("Volunteer", (accounts) => {
       from: accounts[1],
     });
 
-    let project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
 
-    // const hours = await volunteerInstance.getProjectHours(currProjId, accounts[1]);
-    // console.log(hours);
+    await advanceTime(3600);
+
+    const project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
+    const hoursClocked = await volunteerInstance.getProjectHours(currProjId, accounts[1]);
+
     truffleAssert.eventEmitted(project, 'ProjectEnded');
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
-    // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
+
+    assert(hoursClocked > 0, "Volunteer hours should be recorded");
+  });
+
+  it("Should not allow the volunteer to check out after owner has ended the project", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(10);
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, {
+      from: accounts[0],
+    });
+    await volunteerInstance.checkIn(currProjId, {
+      from: accounts[1],
+    });
+
+    async function advanceTime(time) {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime()
+      }, () => { });
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getTime()
+      }, () => { });
+    }
+    await advanceTime(3600);
+
+    const project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
+
+    // Check the state to confirm participation is recorded
+    // const hoursClocked = await volunteerInstance.getProjectHours(projId, accounts[3]);
+    // assert(hoursClocked > 0, "Volunteer hours should be recorded");
+
+    // Try to check out again
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(currProjId, { from: accounts[1] }),
+      "You have already checked out / Project organiser has checked you out."
+    );
+
+    truffleAssert.eventEmitted(project, 'ProjectEnded');
+    truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
   });
   
   // ---------------------------------- Mint Token ------------------------------------------ //
