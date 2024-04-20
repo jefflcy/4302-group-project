@@ -275,7 +275,7 @@ contract("Volunteer", (accounts) => {
     // assert.notEqual(hours, 0, "Hours should be greater than 0 after project end");
   });
 
-
+//----------------------------------MINT TOKEN------------------------------------------//
 
   // MOVE TO VOLUNTEERTOKEN.SOL WHEN READY //
   it("Should not allow non-owner to mint a token", async () => {

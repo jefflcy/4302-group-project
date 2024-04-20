@@ -117,6 +117,10 @@ contract Volunteer is Ownable {
     }
 
     function checkOut(uint256 projId) public validProjId(projId) {
+        require(
+            getProjectHours(projId, msg.sender) == 0,
+            "You have already checked out / Project organiser has checked you out."
+        );
         VolunteerProject memory project = projects[projId];
         _checkOut(projId, msg.sender);
     }
@@ -131,8 +135,8 @@ contract Volunteer is Ownable {
             "Volunteer did not check in to this project."
         );
         require(
-            volunteerHistory[volunteer][projId] == 0,
-            "You have already participated in the Project."
+            getProjectHours(projId, volunteer) == 0,
+            "User has already checked out."
         );
 
         TempVolunteer storage tempVolunteer = tempVolunteers[projId][volunteer];
