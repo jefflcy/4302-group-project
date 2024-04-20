@@ -126,7 +126,6 @@ contract Volunteer is Ownable {
             getProjectHours(projId, msg.sender) == 0,
             "You have already checked out / Project organiser has checked you out."
         );
-        VolunteerProject memory project = projects[projId];
         _checkOut(projId, msg.sender);
     }
 
