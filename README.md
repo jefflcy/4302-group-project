@@ -85,17 +85,17 @@ To set up and test the smart contracts, follow these steps:
 
 ## Criteria
 
-- **Calling of `createProject`
+- **Calling of `createProject`**:
   1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `createProject` function
   2. Ensure that the inputted `uriHash` is valid, starting with 'Qm' and have a length of 46 characters.
   3. Ensure that the `startDateTime` is earlier than the `endDateTime` and the `endDateTime` is in the future
-- **Calling of `checkIn`
+- **Calling of `checkIn`**:
   1. Ensure that you are checking in within the Project Duration
   2. Ensure that you are checking in to an existing Project with a Valid Project ID
-- **Calling of `checkOut`
+- **Calling of `checkOut`**:
   1. Ensure that you are checking out of a Project that you had previously checked into
   2. Ensure that the Project you are checking out of has not ended
-- **Calling of `endProject`
+- **Calling of `endProject`**:
   1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `endProject` function
   2. Ensure that there are Volunteers in the Project that you want to end
 
