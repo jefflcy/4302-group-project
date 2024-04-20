@@ -47,12 +47,12 @@ contract Volunteer is Ownable {
         _;
     }
 
-    modifier validURI(string memory uri) {
+    modifier validUriHash(string memory uriHash) {
         require(
-            bytes(uri).length == 46 &&
-                bytes(uri)[0] == 0x51 &&
-                bytes(uri)[1] == 0x6D,
-            "Invalid URI."
+            bytes(uriHash).length == 46 &&
+                bytes(uriHash)[0] == 0x51 &&
+                bytes(uriHash)[1] == 0x6D,
+            "Invalid uriHash."
         );
         _;
     }
@@ -65,20 +65,19 @@ contract Volunteer is Ownable {
     function createProject(
         uint startDateTime,
         uint endDateTime,
-        string memory uri
-    ) public onlyOwner validURI(uri) {
+        string memory uriHash
+    ) public onlyOwner validUriHash(uriHash) {
         /* ADD NEW REQUIRE STATEMENTS HERE */
         require(endDateTime > startDateTime, "Invalid Start and End Timings.");
         require(
             endDateTime > block.timestamp,
             "End Time must be in the future."
         );
-        require(bytes(uri).length > 0, "URI cannot be empty.");
 
         uint256 projId = getNextProjId();
 
         // STORE THE URI IN THE VOLUNTEERTOKEN CONTRACT
-        volunteerTokenContract.setURI(projId, uri);
+        volunteerTokenContract.setUriHash(projId, uriHash);
 
         // Init empty volunteers array
         address[] memory participatingVolunteers;

@@ -12,7 +12,7 @@ contract VolunteerToken is ERC1155, Ownable {
     string private _baseURI;
 
     // mapping stores the IPFS HASH to the file "0.json" for eg
-    mapping(uint256 => string) private _projectURIs;
+    mapping(uint256 => string) private _projectUriHashs;
 
     // owner is the Volunteer.sol CA
     constructor(string memory _uri) ERC1155(_uri) Ownable(msg.sender) {
@@ -28,9 +28,12 @@ contract VolunteerToken is ERC1155, Ownable {
         _mint(volunteer, projId, 1, "");
     }
 
-    // STORE URI FOR EACH PROJECT
-    function setURI(uint256 projId, string memory _uri) public onlyOwner {
-        _projectURIs[projId] = _uri;
+    // STORE URIHASH FOR EACH PROJECT
+    function setUriHash(
+        uint256 projId,
+        string memory _uriHash
+    ) public onlyOwner {
+        _projectUriHashs[projId] = _uriHash;
     }
 
     // override URI for indiv project metadata uri
@@ -39,7 +42,7 @@ contract VolunteerToken is ERC1155, Ownable {
             string(
                 abi.encodePacked(
                     "https://ipfs.io/ipfs/",
-                    _projectURIs[projId],
+                    _projectUriHashs[projId],
                     "/",
                     Strings.toString(projId),
                     ".json"

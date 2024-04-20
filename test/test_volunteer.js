@@ -78,12 +78,12 @@ contract("Volunteer", (accounts) => {
     await expectRevert(volunteerInstance.createProject(startTime, endTime, wrongURI, { 
       from: accounts[0],
     }),
-     "Invalid URI.",
+     "Invalid uriHash.",
     );
     await expectRevert(volunteerInstance.createProject(startTime, endTime, { 
       from: accounts[0],
     }),
-     "Invalid URI.",
+     "Invalid uriHash.",
     );
   });
   
@@ -214,7 +214,7 @@ contract("Volunteer", (accounts) => {
       }, () => { });
     }
     await advanceTime(3600);
-    
+
     await volunteerInstance.checkOut(currProjId, { from: accounts[1] });
 
     await truffleAssert.reverts(volunteerInstance.checkIn(currProjId, {
