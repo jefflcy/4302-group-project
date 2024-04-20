@@ -391,8 +391,8 @@ contract("Volunteer", (accounts) => {
     const project = await volunteerInstance.endProject(currProjId, { from: accounts[0] });
 
     // Check the state to confirm participation is recorded
-    // const hoursClocked = await volunteerInstance.getProjectHours(projId, accounts[3]);
-    // assert(hoursClocked > 0, "Volunteer hours should be recorded");
+    const hoursClocked = await volunteerInstance.getProjectHours(currProjId, accounts[1]);
+    assert(hoursClocked > 0, "Volunteer hours should be recorded");
 
     // Try to check out again
     await truffleAssert.reverts(
@@ -402,6 +402,21 @@ contract("Volunteer", (accounts) => {
 
     truffleAssert.eventEmitted(project, 'ProjectEnded');
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
+  });
+
+  it("Should not allow check out from a project they did not check into", async () => {
+    let startTime = startTimePrior(2);
+    let endTime = endTimeAfter(10);
+    let currProjId = await volunteerInstance.getNextProjId();
+    await volunteerInstance.createProject(startTime, endTime, exampleURI, {
+      from: accounts[0],
+    });
+
+    await truffleAssert.reverts(
+      volunteerInstance.checkOut(currProjId, { from: accounts[1] }),
+      "Volunteer did not check in to this project."
+    );
+
   });
   
   // ---------------------------------- Mint Token ------------------------------------------ //
