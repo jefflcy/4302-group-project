@@ -209,7 +209,7 @@ contract("Volunteer", (accounts) => {
     // Try to check out again
     await truffleAssert.reverts(
       volunteerInstance.checkOut(projId, { from: accounts[3] }),
-      "You have already participated in the Project."
+      "You have already checked out / Project organiser has checked you out."
     );
   });
 
