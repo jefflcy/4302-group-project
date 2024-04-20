@@ -103,6 +103,7 @@ To set up and test the smart contracts, follow these steps:
 
 - **Time Tracking**: Utilizes `block.timestamp` for tracking the check-in and check-out times of volunteers.
 - **Token Issuance**: A token representing participation is minted for volunteers who check out properly by the end of the project.
+- **Soulbound Tokens**: Participants are unable to transfer tokens of project participation to each other.
 
 ## Limitations
 - **Single Day Events Only**  contract support events with defined start and end times but doesn't explicitly cater to events spanning multiple days. This could limit the flexibility of the platform, especially for events or volunteer activities that naturally extend beyond a single day.
