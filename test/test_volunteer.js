@@ -27,6 +27,7 @@ contract("Volunteer", (accounts) => {
   // ------------------- Test cases -------------------
   // Start and End Timings of projects need to be updated before testing
 
+  // Test to verify that a VolunteerToken instance is created and linked to the Volunteer contract upon deployment.
   it("Should create a new VolunteerToken on deployment", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -36,12 +37,14 @@ contract("Volunteer", (accounts) => {
 
 
   // ------------------ Getter Functions --------------------- //
+  // Test to verify that the first project ID is initialized correctly.
   it("Should return the correct first projId", async () => {
     let firstProjId = await volunteerInstance.getNextProjId();
     assert.equal(firstProjId, 0);
   });
 
   // ------------------- Create Project -------------------------------- //
+  // Test to ensure that only the owner can create a project, guarding against unauthorized access.
   it("Should restrict createProject to only the owner", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(4);
@@ -54,6 +57,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to check that project creation fails if the start time is set after the end time.
   it("Should not allow project start timing to be later than end timing", async () => {
     let startTime = startTimeAfter(4);
     let endTime = endTimeAfter(3);
@@ -64,6 +68,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure that a project's end time cannot be set in the past.
   it("Should not allow project end timing to be earlier than the current time", async () => {
     let startTime = startTimePrior(6);
     let endTime = startTimePrior(2);
@@ -74,6 +79,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to validate that the project URI must be a valid format; reject invalid or empty strings.
   it("Should not allow project to have an invalid or empty URI", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
@@ -90,6 +96,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to verify successful project creation with valid parameters.
   it("Should create a new VolunteerProject when createProject is called with valid inputs", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
@@ -105,6 +112,7 @@ contract("Volunteer", (accounts) => {
   });
 
   // --------------------- Check In ------------------------ //
+  // Test to ensure that a project owner cannot check into their own project.
   it("Should not allow project owner to check in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
@@ -119,6 +127,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure a volunteer cannot check in before the project's start time.
   it("Should not allow volunteer to check in before project start time", async () => {
     const startTime = startTimeAfter(2);
     const endTime = endTimeAfter(4);
@@ -133,6 +142,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure that a volunteer cannot check in after the project's end time.
   it("should revert if volunteer is checking in after the project ends", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // Start the project 1 hour ago
@@ -167,6 +177,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure that attempting to check into an non-existent project will fail.
   it("Should not allow a volunteer to check in to a non-existent project", async () => {
     const projId = 999; // Assuming a project with ID 999 does not exist
     await expectRevert(
@@ -175,6 +186,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure a volunteer can successfully check in when all conditions are met.
   it("Should allow volunteer to successfully check in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6)
@@ -193,6 +205,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(hours, 0, "Hours should be 0 before checkout");
   });
 
+  // Test to verify that once a volunteer has checked out, they cannot check in again.
   it("Should not allow volunteer to check in after checking out", async () => {
     const startTime = startTimePrior(2);
     const endTime = endTimeAfter(4);
@@ -227,6 +240,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure that a volunteer cannot check in more than once.
   it("Should not allow volunteer to check in twice", async () => {
     const startTime = startTimePrior(2);
     const endTime = endTimeAfter(4);
@@ -244,6 +258,7 @@ contract("Volunteer", (accounts) => {
   });
 
   // -------------------------------------- Check Out ----------------------------------------------------------- //
+  // Test to ensure that a volunteer cannot check out more than once
   it("should revert if the volunteer tries to check out again after already completing the project", async () => {
     const currentTime = (await web3.eth.getBlock('latest')).timestamp;
     const startTime = currentTime - 3600; // project started 1 hour ago
@@ -283,6 +298,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to verify that tokens are successfully minted upon project completion and conditions being met.
   it("Should successfully check out and mint tokens if conditions are met", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -318,6 +334,8 @@ contract("Volunteer", (accounts) => {
     assert.equal(balance.toString(), "1", "Balance should be 1 after minting");
   });
 
+
+  // Test to ensure only the owner can end a project.
   it("Should not allow non-owner to end a project", async () => {
     const projId = 0; // Assuming a project with ID 0 exists
     await expectRevertCustomError(
@@ -327,6 +345,8 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+
+  // Test to verify that the owner can successfully end a project.
   it("Should allow the owner to end a project", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(6);
@@ -364,6 +384,7 @@ contract("Volunteer", (accounts) => {
     assert(hoursClocked > 0, "Volunteer hours should be recorded");
   });
 
+  // Test to verify that volunteers cannot check out after the owner has already ended the project.
   it("Should not allow the volunteer to check out after owner has ended the project", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
@@ -407,6 +428,7 @@ contract("Volunteer", (accounts) => {
     truffleAssert.eventEmitted(project, 'VolunteerCheckedOut');
   });
 
+  // Test to verify that volunteers cannot check out if they did not check into the project initially.
   it("Should not allow volunteer to check out from a project they did not check into", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
@@ -421,6 +443,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to verify that the project cannot be ended if no volunteers have checked in.
   it("Should not allow owner to end a project with no volunteers checked in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
@@ -434,9 +457,10 @@ contract("Volunteer", (accounts) => {
       "No Volunteers have checked in yet."
     );
   });
-  
+
   // ---------------------------------- Mint Token ------------------------------------------ //
   // MOVE TO VOLUNTEERTOKEN.SOL WHEN READY //
+  //// Test to ensure non-owner cannot mint tokens, enforcing role-based access.
   it("Should not allow non-owner to mint a token", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -450,6 +474,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to verify that the contract's URI is correctly set and retrievable.
   it("Should return correct contract URI", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -461,6 +486,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to verify that the URI for each project token is correctly formatted and retrievable.
   it("Should return correct URI for a project", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -473,6 +499,7 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+  // Test to ensure token transfers are prevented to maintain integrity and restrict secondary market activities.
   it("should prevent token transfers", async () => {
     const tokenAddress = await volunteerInstance.getVolunteerTokenAddress(); // Method to get the deployed token address
     const tokenInstance = await VolunteerToken.at(tokenAddress);
@@ -521,6 +548,7 @@ contract("Volunteer", (accounts) => {
   });
 
   // ------------------ Getter Functions --------------------- //
+  // Test to verify that the volunteer's checked-out status can be accurately retrieved post-event.
   it("Should successfully check if volunteer has checked out", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
@@ -555,6 +583,7 @@ contract("Volunteer", (accounts) => {
     assert.equal(check, true, "Volunteer should have been checked out");
   });
 
+  // Test to verify the checked-in status of a volunteer for a specific project.
   it("Should successfully check if volunteer is checked in", async () => {
     let startTime = startTimePrior(2);
     let endTime = endTimeAfter(10);
