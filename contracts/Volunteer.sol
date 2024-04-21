@@ -41,7 +41,8 @@ contract Volunteer is Ownable {
     event ProjectCreated(
         uint256 indexed projId,
         uint256 startDateTime,
-        uint256 endDateTime
+        uint256 endDateTime,
+        string uriHash
     );
     event VolunteerCheckedIn(uint256 indexed projId, address volunteer);
     event VolunteerCheckedOut(uint256 indexed projId, address volunteer);
@@ -102,7 +103,7 @@ contract Volunteer is Ownable {
             })
         );
 
-        emit ProjectCreated(projId, startDateTime, endDateTime);
+        emit ProjectCreated(projId, startDateTime, endDateTime, uriHash);
     }
 
     /// @notice Registers a volunteer's check-in to a project
@@ -149,9 +150,14 @@ contract Volunteer is Ownable {
     /// @notice Finalizes a volunteer's participation in a project
     /// @param projId The ID of the project to check out from
     function checkOut(uint256 projId) public validProjId(projId) {
+        VolunteerProject memory project = projects[projId];
+        require(
+            project.ended == false,
+            "Project organiser has ended the project and checked you out."
+        );
         require(
             getProjectHours(projId, msg.sender) == 0,
-            "You have already checked out / Project organiser has checked you out."
+            "You have already checked out."
         );
         _checkOut(projId, msg.sender);
     }

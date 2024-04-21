@@ -177,6 +177,27 @@ contract("Volunteer", (accounts) => {
     );
   });
 
+    // Test to ensure that a volunteer cannot check in after the project organiser has ended the project.
+    it("should revert if volunteer is checking in after the project organiser has ended the project", async () => {
+      const currentTime = (await web3.eth.getBlock('latest')).timestamp;
+      const startTime = currentTime - 3600; // Start the project 1 hour ago
+      const endTime = currentTime + 3600; // End the project in 1 hour from now
+  
+      await volunteerInstance.createProject(startTime, endTime, exampleURI, { from: accounts[0] });
+      const projId = await volunteerInstance.getNextProjId() - 1; // Get the newly created project's ID
+
+      // Need at least one volunteer to be in the project before it can be eneded
+      await volunteerInstance.checkIn(projId, { from: accounts[1] });
+
+      await volunteerInstance.endProject(projId, { from: accounts[0] });
+  
+      // Attempt to check in, should fail project has ended.
+      await truffleAssert.reverts(
+        volunteerInstance.checkIn(projId, { from: accounts[2] }),
+        "Project has ended."
+      );
+    });
+
   // Test to ensure that attempting to check into an non-existent project will fail.
   it("Should not allow a volunteer to check in to a non-existent project", async () => {
     const projId = 999; // Assuming a project with ID 999 does not exist
@@ -294,7 +315,7 @@ contract("Volunteer", (accounts) => {
     // Try to check out again
     await truffleAssert.reverts(
       volunteerInstance.checkOut(projId, { from: accounts[3] }),
-      "You have already checked out / Project organiser has checked you out."
+      "You have already checked out."
     );
   });
 
@@ -421,7 +442,7 @@ contract("Volunteer", (accounts) => {
     // Try to check out again
     await truffleAssert.reverts(
       volunteerInstance.checkOut(currProjId, { from: accounts[1] }),
-      "You have already checked out / Project organiser has checked you out."
+      "Project organiser has ended the project and checked you out."
     );
 
     truffleAssert.eventEmitted(project, 'ProjectEnded');
