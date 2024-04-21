@@ -91,10 +91,12 @@ To set up and test the smart contracts, follow these steps:
   3. Ensure that the `startDateTime` is earlier than the `endDateTime` and the `endDateTime` is in the future
 - **Calling of `checkIn`**:
   1. Ensure that you are checking in within the Project Duration
-  2. Ensure that you are checking in to an existing Project with a Valid Project ID
+  2. Ensure that you are checking in to a Project that the Project organiser has not ended.
+  3. Ensure that you are checking in to an existing Project with a Valid Project ID
 - **Calling of `checkOut`**:
   1. Ensure that you are checking out of a Project that you had previously checked into
-  2. Ensure that the Project you are checking out of has not ended
+  2. Ensure that you are checking out within the duration of the Project.
+  3. Ensure that the Project organiser has not ended the Project you are checking out of.
 - **Calling of `endProject`**:
   1. Ensure that the Wallet Address that deployed the `Volunteer.sol` contract is the address that calls the `endProject` function
   2. Ensure that there are Volunteers in the Project that you want to end
