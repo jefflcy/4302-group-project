@@ -19,6 +19,7 @@ contract Volunteer is Ownable {
         address[] participatingVolunteers;
         uint256 startDateTime;
         uint256 endDateTime;
+        bool ended;
     }
 
     /*
@@ -96,7 +97,8 @@ contract Volunteer is Ownable {
                 projId: projId,
                 participatingVolunteers: participatingVolunteers,
                 startDateTime: startDateTime,
-                endDateTime: endDateTime
+                endDateTime: endDateTime,
+                ended: false
             })
         );
 
@@ -113,7 +115,10 @@ contract Volunteer is Ownable {
             block.timestamp >= project.startDateTime,
             "Project has not started."
         );
-        require(block.timestamp < project.endDateTime, "Project has ended.");
+        require(
+            block.timestamp < project.endDateTime && project.ended == false,
+            "Project has ended."
+        );
         require(
             volunteerHistory[msg.sender][projId] == 0,
             "You have already participated in the Project."
@@ -232,6 +237,9 @@ contract Volunteer is Ownable {
                 _checkOut(projId, volunteer);
             }
         }
+
+        // UPDATE project has ended to VolunteerProject
+        projects[projId].ended = true;
 
         // purge tempVolunteers and tempVolunteerAddresses for that projId
         for (uint i = 0; i < tempVolunteerAddresses[projId].length; i++) {
